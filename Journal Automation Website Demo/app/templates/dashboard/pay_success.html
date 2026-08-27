@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .success-page { padding: 3rem 0; }
+    .success-card { background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); border:1px solid var(--color-border); overflow:hidden; max-width:520px; margin:0 auto; text-align:center; }
+    .success-header { background:linear-gradient(135deg,#0ead69,#059669); padding:2.5rem 2rem; color:#fff; }
+    .success-icon { width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.15); display:inline-flex; align-items:center; justify-content:center; font-size:2rem; margin-bottom:1rem; }
+    .success-header h3 { font-family:var(--font-serif); font-weight:800; margin:0; }
+    .success-header p { color:rgba(255,255,255,0.6); font-size:0.88rem; margin:0.3rem 0 0; }
+    .receipt { padding:2rem; }
+    .receipt-row { display:flex; justify-content:space-between; padding:0.6rem 0; border-bottom:1px solid var(--color-border); font-size:0.88rem; }
+    .receipt-row:last-child { border:none; }
+    .receipt-row .label { color:var(--color-text-muted); }
+    .receipt-row .value { font-weight:600; }
+    .receipt-total { background:var(--color-bg); border-radius:var(--radius-sm); padding:1rem; margin:1rem 0; }
+    .receipt-total .amount { font-family:var(--font-serif); font-size:1.8rem; font-weight:800; color:#0ead69; }
+    .btn-back { background:var(--gradient-primary); color:#fff; border:none; border-radius:var(--radius-sm); padding:0.7rem 2rem; font-weight:700; transition:var(--transition-fast); }
+    .btn-back:hover { transform:translateY(-2px); color:#fff; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="success-page">
+    <div class="container">
+        <div class="success-card">
+            <div class="success-header">
+                <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+                <h3>Payment Successful!</h3>
+                <p>Your manuscript is awaiting editor approval for publication</p>
+            </div>
+            <div class="receipt">
+                <h6 class="text-muted mb-3" style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;">Transaction Receipt</h6>
+                <div class="receipt-row">
+                    <span class="label">Transaction ID</span>
+                    <span class="value" style="font-family:monospace;font-size:0.78rem;">{{ payment.transaction_id[:18] }}...</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="label">Paper</span>
+                    <span class="value">{{ paper.title | truncate(30) }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="label">Date</span>
+                    <span class="value">{{ payment.payment_date.strftime('%b %d, %Y %H:%M') }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="label">Card</span>
+                    <span class="value">•••• {{ payment.card_last_four }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="label">Cardholder</span>
+                    <span class="value">{{ payment.card_holder_name }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="label">Status</span>
+                    <span class="value" style="color:#0ead69;"><i class="bi bi-check-circle-fill me-1"></i>{{ payment.status }}</span>
+                </div>
+                <div class="receipt-total">
+                    <div class="text-muted" style="font-size:0.78rem;">Amount Paid</div>
+                    <div class="amount">{{ total_fee }} TL</div>
+                </div>
+                <div class="alert" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:var(--radius-sm);padding:0.8rem 1rem;font-size:0.85rem;color:#059669;text-align:left;margin-bottom:1rem;">
+                    <i class="bi bi-hourglass-split me-1"></i>
+                    <strong>Next Step:</strong> The editor will review your payment and publish your manuscript to the archive.
+                </div>
+                <a href="{{ url_for('author.dashboard') }}" class="btn btn-back">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

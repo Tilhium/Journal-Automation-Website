@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .form-page { padding: 4rem 0; }
+    .pay-card { background:rgba(255, 255, 255, 0.95); border-radius:var(--radius-xl); box-shadow:0 15px 35px rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); overflow:hidden; max-width:520px; margin:0 auto; transition: transform var(--transition-normal); }
+    .pay-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
+    .pay-header { background: linear-gradient(135deg, #0f3460 0%, #16213e 100%); padding:2.5rem; color:#fff; text-align:center; position:relative; overflow:hidden; }
+    .pay-header::before { content:''; position:absolute; left:-50px; top:-50px; width:150px; height:150px; border-radius:50%; background:linear-gradient(135deg, rgba(233, 69, 96, 0.4), transparent); }
+    .pay-header::after { content:''; position:absolute; right:-30px; bottom:-30px; width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg, transparent, rgba(83, 52, 131, 0.6)); }
+    .pay-header p { color:rgba(255,255,255,0.8); font-size:0.9rem; margin-bottom:0.5rem; font-weight: 500; z-index: 1; position: relative; text-transform: uppercase; letter-spacing: 1px; }
+    .pay-header .amount { font-family:var(--font-serif); font-size:3.5rem; font-weight:800; z-index: 1; position: relative; text-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .pay-header .paper-title { font-size:0.85rem; color:rgba(255,255,255,0.6); margin-top:0.5rem; font-style:italic; z-index: 1; position: relative; }
+    .pay-body { padding:2rem 2.5rem; }
+    .pay-breakdown { list-style:none; padding:0; margin:0 0 2rem; background: var(--color-bg); border-radius: var(--radius-md); padding: 1.2rem; border: 1px solid var(--color-border); }
+    .pay-breakdown li { display:flex; justify-content:space-between; padding:0.6rem 0; border-bottom:1px dashed var(--color-border); font-size:0.9rem; color: var(--color-text-muted); }
+    .pay-breakdown li:last-child { border:none; font-weight:700; font-size:1rem; padding-top:0.8rem; color: var(--color-text); }
+    .pay-body .form-label { font-weight:600; font-size:0.85rem; color: var(--color-primary-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+    .pay-body .form-control { border-radius:var(--radius-sm); border:1.5px solid var(--color-border); padding:0.8rem 1.2rem; font-size:0.95rem; font-weight: 500; transition:var(--transition-fast); background-color: #f9fafb; color: var(--color-primary-dark); }
+    .pay-body .form-control:focus { background-color: #fff; border-color:#0f3460; box-shadow:0 0 0 4px rgba(15, 52, 96, 0.1); outline: none; }
+    .card-type-icon { position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:1.5rem; opacity:0.8; transition: var(--transition-fast); }
+    .card-input-wrap { position:relative; }
+    .btn-pay { background:linear-gradient(135deg,#0ead69,#059669); color:#fff; border:none; border-radius:var(--radius-sm); padding:1rem; font-weight:800; font-size:1.1rem; text-transform: uppercase; letter-spacing: 1px; transition:var(--transition-fast); box-shadow:0 4px 15px rgba(14,173,105,0.3); position: relative; overflow: hidden; }
+    .btn-pay::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: var(--transition-normal); }
+    .btn-pay:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(14,173,105,0.4); color:#fff; }
+    .btn-pay:hover::after { left: 100%; transition: var(--transition-slow); }
+    .btn-pay:disabled { opacity:0.7; transform:none; cursor: not-allowed; }
+    .security-note { font-size:0.8rem; color:var(--color-text-muted); text-align:center; margin-top:1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .security-note i { color:#0ead69; font-size: 1.1rem; }
+    .card-preview { background:linear-gradient(135deg,#1e293b,#0f172a); border-radius:var(--radius-md); padding:1.5rem; margin-bottom:2rem; color:#fff; position:relative; overflow:hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: transform 0.3s ease; }
+    .card-preview:hover { transform: scale(1.02) rotateY(5deg); }
+    .card-preview::before { content:''; position:absolute; left:-50%; top:-50%; width:200%; height:200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent); transform: rotate(45deg); pointer-events: none; }
+    .card-preview::after { content:''; position:absolute; right:-20px; top:-20px; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); }
+    .card-preview .card-chip { width:45px; height:32px; border-radius:6px; background:linear-gradient(135deg,#fbbf24,#b45309); margin-bottom:1rem; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); }
+    .card-preview .card-chip::after { content: ''; position: absolute; width: 100%; height: 1px; background: rgba(0,0,0,0.2); top: 50%; left: 0; }
+    .card-preview .card-nums { font-family: 'Inter', monospace; font-size:1.35rem; letter-spacing:4px; margin-bottom:0.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3); font-weight: 500; }
+    .card-preview .card-holder-text { font-size:0.75rem; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.5); font-weight: 600; margin-bottom: 2px; }
+    .card-preview .card-holder-name { font-size:1rem; font-weight:600; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.3); letter-spacing: 1px; }
+    .card-preview .card-type-logo { position:absolute; right:1.5rem; bottom:1.5rem; font-size:2.2rem; opacity:0.8; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="form-page">
+    <div class="container">
+        <div class="pay-card">
+            <div class="pay-header">
+                <p><i class="bi bi-shield-check me-1"></i>Publication Fee Payment</p>
+                <div class="amount">{{ total_fee }} TL</div>
+                <div class="paper-title">{{ paper.title | truncate(60) }}</div>
+            </div>
+            <div class="pay-body">
+                <!-- Card Preview -->
+                <div class="card-preview" id="cardPreview">
+                    <div class="card-chip"></div>
+                    <div class="card-nums" id="previewNums">•••• •••• •••• ••••</div>
+                    <div class="card-holder-text">Card Holder</div>
+                    <div class="card-holder-name" id="previewHolder">YOUR NAME</div>
+                    <div class="card-type-logo" id="previewType"><i class="bi bi-credit-card-2-front"></i></div>
+                </div>
+
+                <ul class="pay-breakdown">
+                    <li><span>Base Publication Fee</span><strong>3,000 TL</strong></li>
+                    <li><span>Version Surcharge ({{ paper.versions|length }} ver.)</span><strong>{{ (paper.versions|length) * 150 }} TL</strong></li>
+                    <li><span>Total Due</span><strong>{{ total_fee }} TL</strong></li>
+                </ul>
+                
+                <form method="POST" id="payForm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label mb-0">Cardholder Name</label>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="btnRandomCard">
+                            <i class="bi bi-magic me-1"></i>Test Card
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" name="card_holder" class="form-control" id="cardHolder" placeholder="Name as shown on card" required autocomplete="cc-name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Card Number</label>
+                        <div class="card-input-wrap">
+                            <input type="text" name="card_number" class="form-control" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" required autocomplete="cc-number" inputmode="numeric">
+                            <span class="card-type-icon" id="cardTypeIcon"><i class="bi bi-credit-card-2-front"></i></span>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="form-label">Expiry Date</label>
+                            <input type="text" name="expiry" class="form-control" id="cardExpiry" placeholder="MM/YY" maxlength="5" required autocomplete="cc-exp" inputmode="numeric">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">CVV</label>
+                            <input type="text" name="cvv" class="form-control" id="cardCvv" placeholder="•••" maxlength="4" required autocomplete="cc-csc" inputmode="numeric">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-pay w-100" id="payBtn">
+                        <i class="bi bi-lock-fill me-2"></i>Pay {{ total_fee }} TL
+                    </button>
+                </form>
+                <div class="security-note">
+                    <i class="bi bi-shield-lock-fill me-1"></i>
+                    Your card information is encrypted and processed securely. We do not store full card details.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const cardNumber = document.getElementById('cardNumber');
+const cardHolder = document.getElementById('cardHolder');
+const cardExpiry = document.getElementById('cardExpiry');
+const cardCvv = document.getElementById('cardCvv');
+const previewNums = document.getElementById('previewNums');
+const previewHolder = document.getElementById('previewHolder');
+const previewType = document.getElementById('previewType');
+const cardTypeIcon = document.getElementById('cardTypeIcon');
+
+// Format card number with spaces
+cardNumber.addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').substring(0, 16);
+    let formatted = v.replace(/(\d{4})(?=\d)/g, '$1 ');
+    this.value = formatted;
+    
+    // Update preview
+    let display = v.padEnd(16, '•');
+    previewNums.textContent = display.replace(/(.{4})/g, '$1 ').trim();
+    
+    // Detect card type
+    let icon = '<i class="bi bi-credit-card-2-front"></i>';
+    if (v.startsWith('4')) icon = '<i class="bi bi-credit-card-2-front" style="color:#1a73e8;"></i> Visa';
+    else if (v.startsWith('5') || v.startsWith('2')) icon = '<i class="bi bi-credit-card-2-front" style="color:#eb001b;"></i> MC';
+    cardTypeIcon.innerHTML = icon;
+    previewType.innerHTML = icon;
+});
+
+// Update holder name preview
+cardHolder.addEventListener('input', function() {
+    previewHolder.textContent = this.value.toUpperCase() || 'YOUR NAME';
+});
+
+// Format expiry MM/YY
+cardExpiry.addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').substring(0, 4);
+    if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2);
+    this.value = v;
+});
+
+// CVV — only digits
+cardCvv.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '').substring(0, 4);
+});
+
+// Luhn validation
+function luhnCheck(num) {
+    let sum = 0;
+    for (let i = num.length - 1; i >= 0; i--) {
+        let n = parseInt(num[i]);
+        if ((num.length - i) % 2 === 0) {
+            n *= 2;
+            if (n > 9) n -= 9;
+        }
+        sum += n;
+    }
+    return sum % 10 === 0;
+}
+
+// Form submit validation
+document.getElementById('payForm').addEventListener('submit', function(e) {
+    const num = cardNumber.value.replace(/\s/g, '');
+    const holder = cardHolder.value.trim();
+    const expiry = cardExpiry.value.trim();
+    const cvv = cardCvv.value.trim();
+    let errors = [];
+
+    if (holder.length < 3) errors.push('Enter cardholder name');
+    if (num.length !== 16) errors.push('Card number must be 16 digits');
+    else if (!luhnCheck(num)) errors.push('Invalid card number');
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) errors.push('Expiry must be MM/YY');
+    else {
+        const [mm, yy] = expiry.split('/').map(Number);
+        if (mm < 1 || mm > 12) errors.push('Invalid expiry month');
+    }
+    if (cvv.length < 3) errors.push('CVV must be at least 3 digits');
+
+    if (errors.length > 0) {
+        e.preventDefault();
+        alert(errors.join('\n'));
+        return;
+    }
+
+    // Disable button and show processing
+    const btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing payment...';
+});
+
+// Random Card Generator
+document.getElementById('btnRandomCard').addEventListener('click', function() {
+    // Generate valid Luhn card (start with 4 for Visa)
+    let card = '4';
+    for (let i = 0; i < 14; i++) {
+        card += Math.floor(Math.random() * 10);
+    }
+    // Calculate check digit
+    let sum = 0;
+    for (let i = 0; i < 15; i++) {
+        let n = parseInt(card[i]);
+        if (i % 2 === 0) {
+            n *= 2;
+            if (n > 9) n -= 9;
+        }
+        sum += n;
+    }
+    let checkDigit = (10 - (sum % 10)) % 10;
+    card += checkDigit;
+
+    // Fill form
+    cardHolder.value = 'TEST USER';
+    cardNumber.value = card;
+    cardExpiry.value = '12/28';
+    cardCvv.value = Math.floor(100 + Math.random() * 900).toString();
+
+    // Trigger input events to format and update previews
+    cardHolder.dispatchEvent(new Event('input'));
+    cardNumber.dispatchEvent(new Event('input'));
+    cardExpiry.dispatchEvent(new Event('input'));
+    cardCvv.dispatchEvent(new Event('input'));
+});
+</script>
+{% endblock %}

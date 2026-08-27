@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .paper-hero { background: var(--gradient-primary); padding: 3rem 0 2.5rem; position: relative; overflow: hidden; }
+    .paper-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 80% 30%,rgba(233,69,96,0.1) 0%,transparent 50%); }
+    .paper-hero * { position: relative; z-index: 2; }
+    .paper-hero h1 { font-family: var(--font-serif); font-weight: 800; color: #fff; font-size: 2rem; line-height: 1.4; margin-bottom: 1rem; }
+    .paper-hero .cat-badge { background: rgba(255,255,255,0.15); color: #fff; padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+    .paper-hero .meta-row { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem; }
+    .paper-hero .meta-item { color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+    .paper-hero .meta-item i { margin-right: 0.3rem; }
+    .paper-hero .meta-item strong { color: #fff; }
+
+    .paper-body { padding: 2.5rem 0; }
+    .content-card { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-md); overflow: hidden; }
+    .content-section { padding: 2rem 2.5rem; }
+    .content-section h3 { font-family: var(--font-serif); font-weight: 700; font-size: 1.3rem; margin-bottom: 1rem; color: var(--color-primary); }
+    .abstract-box { background: var(--color-bg); border-left: 4px solid var(--color-accent); border-radius: var(--radius-sm); padding: 1.5rem; margin-bottom: 2rem; }
+    .abstract-box h4 { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-accent); margin-bottom: 0.5rem; }
+    .abstract-box p { font-size: 0.95rem; line-height: 1.8; color: var(--color-text-muted); font-style: italic; margin: 0; }
+    .paper-content { font-size: 1rem; line-height: 1.9; color: var(--color-text); }
+    .paper-content img { 
+        max-width: 100%; 
+        height: auto;
+        max-height: 600px;
+        display: block;
+        margin: 2rem auto;
+        border-radius: var(--radius-md); 
+        background: #f1f5f9;
+        object-fit: contain;
+    }
+    .paper-content h2, .paper-content h3, .paper-content h4 { font-family: var(--font-serif); font-weight: 700; margin-top: 2rem; margin-bottom: 0.8rem; }
+    .paper-content p { margin-bottom: 1rem; }
+    .paper-content blockquote { border-left: 4px solid var(--color-accent); padding: 1rem 1.5rem; margin: 1.5rem 0; background: var(--color-bg); border-radius: var(--radius-sm); font-style: italic; }
+
+    /* Image gallery */
+    .paper-gallery { margin-top: 2rem; }
+    .paper-gallery h4 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin-bottom: 1rem; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .gallery-item { 
+        border-radius: var(--radius-md); 
+        overflow: hidden; 
+        border: 1px solid var(--color-border); 
+        background: #f1f5f9;
+        min-height: 160px;
+    }
+    .gallery-item img { width: 100%; height: 160px; object-fit: cover; transition: opacity 0.3s; }
+    .gallery-item .caption { padding: 0.5rem 0.8rem; font-size: 0.78rem; color: var(--color-text-muted); background: var(--color-bg); }
+
+    /* Sidebar */
+    .sidebar-info { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-md); overflow: hidden; }
+    .sidebar-info .info-header { background: var(--color-bg); padding: 1rem 1.2rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
+    .sidebar-info .info-row { display: flex; justify-content: space-between; padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--color-border); font-size: 0.85rem; }
+    .sidebar-info .info-row:last-child { border: none; }
+    .sidebar-info .info-label { color: var(--color-text-muted); }
+    .sidebar-info .info-value { font-weight: 600; }
+    .btn-download { background: var(--gradient-accent); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 700; padding: 0.7rem; transition: var(--transition-fast); box-shadow: 0 4px 15px rgba(233,69,96,0.3); }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(233,69,96,0.4); color: #fff; }
+    .no-content { text-align: center; padding: 3rem; color: var(--color-text-muted); }
+    .no-content i { font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="paper-hero">
+    <div class="container">
+        <span class="cat-badge"><i class="bi bi-tag me-1"></i>{{ paper.category }}</span>
+        <h1 class="mt-2">{{ paper.title }}</h1>
+        <div class="meta-row">
+            <span class="meta-item"><i class="bi bi-person-circle"></i><strong>{{ paper.author.full_name }}</strong></span>
+            <span class="meta-item"><i class="bi bi-calendar3"></i>{{ paper.created_at.strftime('%B %d, %Y') if paper.created_at }}</span>
+            <span class="meta-item"><i class="bi bi-eye"></i>{{ paper.view_count or 0 }} views</span>
+            {% if paper.status == 'Published' %}
+            <span class="meta-item" style="color:#34d399;"><i class="bi bi-check-circle-fill"></i>Published</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="paper-body">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="content-card">
+                    <!-- Abstract -->
+                    <div class="content-section">
+                        {% if paper.abstract %}
+                        <div class="abstract-box">
+                            <h4><i class="bi bi-blockquote-left me-1"></i>Abstract</h4>
+                            <p>{{ paper.abstract }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Author Content -->
+                        {% if paper.content %}
+                        <div class="paper-content">
+                            {{ paper.content | safe }}
+                        </div>
+                        {% else %}
+                        <div class="no-content">
+                            <i class="bi bi-journal-text"></i>
+                            <p>The author has not added detailed content for this paper yet.</p>
+                            {% if current_user.is_authenticated and current_user.id == paper.author_id %}
+                            <a href="{{ url_for('author.edit_paper_page', paper_id=paper.id) }}" class="btn btn-outline-primary btn-sm mt-2">
+                                <i class="bi bi-pencil me-1"></i>Write Paper Page
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="sidebar-info mb-3">
+                    <div class="info-header"><i class="bi bi-info-circle me-1"></i>Paper Information</div>
+                    <div class="info-row">
+                        <span class="info-label">Author</span>
+                        <span class="info-value">{{ paper.author.full_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Category</span>
+                        <span class="info-value">{{ paper.category }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Submitted</span>
+                        <span class="info-value">{{ paper.created_at.strftime('%b %d, %Y') if paper.created_at }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Versions</span>
+                        <span class="info-value">{{ paper.versions | length }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Views</span>
+                        <span class="info-value">{{ paper.view_count or 0 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status</span>
+                        <span class="info-value" style="color:#0ead69;">{{ paper.status }}</span>
+                    </div>
+                </div>
+
+                <a href="/view-file/paper_{{ paper.id }}.pdf" target="_blank" class="btn btn-download w-100 mb-3">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>View Full PDF
+                </a>
+
+                {% if current_user.is_authenticated and current_user.id == paper.author_id %}
+                <a href="{{ url_for('author.edit_paper_page', paper_id=paper.id) }}" class="btn btn-outline-primary w-100" style="border-radius:var(--radius-sm);font-weight:600;">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Paper Page
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

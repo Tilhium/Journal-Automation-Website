@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .form-page { padding: 3rem 0; }
+    .form-card { background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); border:1px solid var(--color-border); overflow:hidden; }
+    .form-card-header { background:var(--gradient-primary); padding:1.5rem 2rem; color:#fff; }
+    .form-card-header h4 { font-family:var(--font-serif); font-weight:700; margin:0; }
+    .form-card-header p { color:rgba(255,255,255,0.6); font-size:0.85rem; margin:0.3rem 0 0; }
+    .form-card-body { padding:2rem; }
+    .form-card-body .form-label { font-weight:600; font-size:0.88rem; }
+    .form-card-body .form-control, .form-card-body .form-select { border-radius:var(--radius-sm); padding:0.7rem 1rem; border:1.5px solid var(--color-border); font-size:0.9rem; transition:var(--transition-fast); }
+    .form-card-body .form-control:focus, .form-card-body .form-select:focus { border-color:var(--color-accent); box-shadow:0 0 0 3px rgba(233,69,96,0.1); }
+    .btn-form { background:var(--gradient-accent); color:#fff; border:none; border-radius:var(--radius-sm); padding:0.75rem; font-weight:700; font-size:0.95rem; transition:var(--transition-fast); box-shadow:0 4px 15px rgba(233,69,96,0.3); }
+    .btn-form:hover { transform:translateY(-2px); box-shadow:0 6px 25px rgba(233,69,96,0.4); color:#fff; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="form-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <h4><i class="bi bi-file-earmark-plus me-2"></i>Submit New Paper</h4>
+                        <p>Complete all fields. File must be in PDF format.</p>
+                    </div>
+                    <div class="form-card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-4">
+                                <label for="title" class="form-label">Paper Title</label>
+                                <input type="text" name="title" id="title" class="form-control" placeholder="Enter the full title of your paper..." required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="category" class="form-label">Category</label>
+                                <select name="category" id="category" class="form-select" required>
+                                    <option value="" disabled selected>Select a category...</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text mt-1"><i class="bi bi-info-circle me-1"></i>Choose the academic field that best fits your paper.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="abstract" class="form-label">Abstract</label>
+                                <textarea name="abstract" id="abstract" class="form-control" rows="5" placeholder="Enter a brief abstract (max 500 words)..." required></textarea>
+                                <div class="form-text mt-1"><i class="bi bi-info-circle me-1"></i>This appears as a preview on the Archive page.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="paper_file" class="form-label">PDF File</label>
+                                <input type="file" name="paper_file" id="paper_file" class="form-control" accept=".pdf" required>
+                                <div class="form-text text-danger"><i class="bi bi-exclamation-circle me-1"></i>Only .pdf files accepted.</div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-form"><i class="bi bi-cloud-arrow-up-fill me-2"></i>Submit to System</button>
+                                <a href="{{ url_for('author.dashboard') }}" class="btn btn-outline-secondary" style="border-radius:var(--radius-sm);">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

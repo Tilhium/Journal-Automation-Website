@@ -1,0 +1,19 @@
+# Test Users
+
+You can use the following accounts to test the different roles in the system.
+
+**Author**
+Email: author@test.com
+Password: password123
+
+**Reviewer**
+Email: reviewer@test.com
+Password: password123
+
+**Editor**
+Email: editor@test.com
+Password: password123
+
+**Admin**
+Email: admin@test.com
+Password: password123

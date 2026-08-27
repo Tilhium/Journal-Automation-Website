@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .dash-header { background: var(--gradient-primary); padding: 2rem 0; position: relative; overflow: hidden; }
+    .dash-header::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 20% 50%,rgba(251,191,36,0.1) 0%,transparent 50%); }
+    .dash-header * { position: relative; z-index: 2; }
+    .dash-header h2 { font-family: var(--font-serif); font-weight: 800; color: #fff; margin: 0; }
+    .dash-header p { color: rgba(255,255,255,0.6); margin: 0.3rem 0 0; font-size: 0.9rem; }
+    .stat-card { background:var(--color-surface); border-radius:var(--radius-lg); padding:1.8rem; border:1px solid var(--color-border); box-shadow:var(--shadow-md); text-align:center; transition:var(--transition-fast); }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .stat-card .stat-num { font-family:var(--font-serif); font-size:2.5rem; font-weight:800; }
+    .stat-card .stat-lbl { font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-text-muted); margin-top:0.3rem; }
+    .papers-table { background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); border:1px solid var(--color-border); overflow:hidden; }
+    .papers-table .table { margin:0; }
+    .papers-table .table thead th { background:var(--color-bg); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-muted); border:none; padding:1rem 1.2rem; }
+    .papers-table .table tbody td { padding:0.8rem 1.2rem; vertical-align:middle; border-color:var(--color-border); font-size:0.88rem; }
+    .papers-table .table tbody tr { transition:var(--transition-fast); }
+    .papers-table .table tbody tr:hover { background:rgba(233,69,96,0.02); }
+    .role-badge { font-size:0.72rem; font-weight:600; padding:0.3rem 0.7rem; border-radius:50px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dash-header">
+    <div class="container">
+        <h2><i class="bi bi-shield-lock-fill me-2"></i>Admin Control Center</h2>
+        <p>System administration, user management, and manuscript oversight</p>
+    </div>
+</div>
+<div class="container py-4">
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-primary);">{{ papers|length }}</div>
+                <div class="stat-lbl">Total Papers</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-accent);">{{ users|length }}</div>
+                <div class="stat-lbl">Active Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-num" style="color:var(--color-success);">{{ users|selectattr('role','equalto','Reviewer')|list|length }}</div>
+                <div class="stat-lbl">Reviewers</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="papers-table">
+        <div class="p-3 border-bottom" style="background:var(--color-bg);">
+            <h6 class="mb-0 fw-bold" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-muted);">
+                <i class="bi bi-people me-2"></i>User Management
+            </h6>
+        </div>
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr><th>User</th><th>Email</th><th>Current Role</th><th>Change Role</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong>{{ user.full_name }}</strong></td>
+                    <td class="text-muted" style="font-size:0.85rem;">{{ user.email }}</td>
+                    <td>
+                        <span class="role-badge
+                            {% if user.role == 'Admin' %}bg-warning text-dark
+                            {% elif user.role == 'Editor' %}bg-info text-white
+                            {% elif user.role == 'Reviewer' %}bg-success text-white
+                            {% else %}bg-primary text-white{% endif %}">
+                            {{ user.role }}
+                        </span>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('admin.change_role', user_id=user.id) }}" method="POST" class="d-flex gap-1">
+                            <select name="new_role" class="form-select form-select-sm" style="width:120px;border-radius:var(--radius-sm);font-size:0.82rem;">
+                                <option value="Author">Author</option>
+                                <option value="Reviewer">Reviewer</option>
+                                <option value="Editor">Editor</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                            <button class="btn btn-sm btn-outline-dark" style="border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;">Update</button>
+                        </form>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin.delete_user', user_id=user.id) }}" class="btn btn-sm btn-outline-danger" style="border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;" onclick="return confirm('Are you sure?')">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

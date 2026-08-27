@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .archive-header { background:var(--gradient-primary); padding:3rem 0 2rem; position:relative; overflow:hidden; }
+    .archive-header::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 60% 80%,rgba(83,52,131,0.15) 0%,transparent 50%); }
+    .archive-header * { position:relative; z-index:2; }
+    .archive-header h1 { font-family:var(--font-serif); font-weight:800; color:#fff; font-size:2.2rem; }
+    .archive-header p { color:rgba(255,255,255,0.6); font-size:0.95rem; }
+    .search-bar { background:var(--color-surface); border-radius:50px; overflow:hidden; box-shadow:var(--shadow-md); border:1px solid var(--color-border); display:flex; max-width:600px; margin:1.5rem auto 0; }
+    .search-bar input { border:none; padding:0.7rem 1.5rem; flex:1; font-size:0.9rem; outline:none; }
+    .search-bar button { background:var(--gradient-accent); color:#fff; border:none; padding:0 1.5rem; font-weight:600; font-size:0.88rem; }
+
+    /* Sorting & Filtering bar */
+    .filter-bar { background:var(--color-surface); border-radius:var(--radius-lg); padding:0.8rem 1.2rem; border:1px solid var(--color-border); box-shadow:var(--shadow-sm); display:flex; flex-wrap:wrap; align-items:center; gap:0.8rem; margin-bottom:1.5rem; }
+    .filter-bar .filter-label { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-text-muted); white-space:nowrap; }
+    .sort-select { border-radius:50px; border:1.5px solid var(--color-border); padding:0.35rem 1rem; font-size:0.82rem; font-weight:600; cursor:pointer; transition:var(--transition-fast); }
+    .sort-select:focus { border-color:var(--color-accent); box-shadow:0 0 0 3px rgba(233,69,96,0.1); outline:none; }
+    .cat-pills { display:flex; flex-wrap:wrap; gap:0.3rem; flex:1; }
+    .cat-pill { display:inline-block; padding:0.3rem 0.7rem; border-radius:50px; font-size:0.72rem; font-weight:600; border:1.5px solid var(--color-border); color:var(--color-text-muted); text-decoration:none; transition:var(--transition-fast); white-space:nowrap; }
+    .cat-pill:hover { border-color:var(--color-accent); color:var(--color-accent); }
+    .cat-pill.active { background:var(--gradient-accent); color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(233,69,96,0.2); }
+
+    .mgmt-toggle { display:inline-flex; align-items:center; gap:0.5rem; background:var(--color-surface); border-radius:50px; padding:0.4rem 1rem; border:1px solid var(--color-border); box-shadow:var(--shadow-sm); font-size:0.82rem; font-weight:600; }
+
+    .paper-card { background:var(--color-surface); border-radius:var(--radius-lg); border:1px solid var(--color-border); overflow:hidden; transition:var(--transition-normal); height:100%; display:flex; flex-direction:column; }
+    .paper-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-lg); }
+    .paper-card-top { height:4px; background:var(--gradient-accent); }
+    .paper-card.hidden-card .paper-card-top { background:var(--color-border); }
+    .paper-card-body { padding:1.5rem; flex:1; display:flex; flex-direction:column; }
+    .paper-card .paper-badge { font-size:0.7rem; font-weight:600; padding:0.25rem 0.7rem; border-radius:50px; letter-spacing:0.03em; }
+    .paper-card .cat-badge { font-size:0.65rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:50px; background:rgba(96,165,250,0.1); color:#60a5fa; border:1px solid rgba(96,165,250,0.2); }
+    .paper-card h5 { font-weight:700; font-size:1rem; margin:0.6rem 0; line-height:1.5; }
+    .paper-card .abstract-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-accent); margin-bottom:0.2rem; }
+    .paper-card .abstract-text { font-size:0.83rem; color:var(--color-text-muted); line-height:1.7; font-style:italic; flex:1; }
+    .paper-card .author-info { font-size:0.82rem; color:var(--color-text-muted); margin-top:auto; padding-top:0.8rem; }
+    .paper-card .btn-view-pdf { border-radius:var(--radius-sm); font-weight:600; font-size:0.8rem; transition:var(--transition-fast); padding: 0.3rem 0.6rem; }
+    .paper-card .btn-view-pdf:hover { transform:translateY(-1px); }
+    .paper-card.hidden-card { opacity:0.6; border-style:dashed; }
+
+    .weekly-card { background:var(--gradient-primary); color:#fff; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-md); position:relative; }
+    .weekly-card .card-body { padding:1.5rem; position:relative; z-index:2; }
+    .weekly-card h5 { font-weight:700; font-size:0.95rem; margin-bottom:1rem; }
+    .weekly-card .list-group-item { background:transparent; color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.1); padding:0.6rem 0; }
+    .weekly-card .list-group-item:hover { background:rgba(255,255,255,0.05); }
+    .weekly-card .list-group-item h6 { font-size:0.8rem; font-weight:600; color:#fff; margin:0; }
+
+    .active-filters { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1rem; }
+    .active-filter-tag { display:inline-flex; align-items:center; gap:0.3rem; padding:0.25rem 0.7rem; border-radius:50px; font-size:0.72rem; font-weight:600; background:rgba(233,69,96,0.08); color:var(--color-accent); border:1px solid rgba(233,69,96,0.15); }
+    .active-filter-tag a { color:var(--color-accent); text-decoration:none; font-size:0.85rem; }
+
+    .results-info { font-size:0.82rem; color:var(--color-text-muted); margin-bottom:1rem; }
+    
+    /* Sliding Management Buttons */
+    .mgmt-actions { 
+        display: flex;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+        border-top-color: transparent !important;
+        transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease, margin 0.4s ease, border-color 0.4s ease;
+    }
+    .mgmt-actions.show-mgmt {
+        max-height: 80px; /* enough to show buttons */
+        opacity: 1;
+        padding-top: 0.5rem !important;
+        margin-top: 0.5rem !important;
+        border-top-color: var(--color-border) !important;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="archive-header">
+    <div class="container text-center">
+        <h1>Academic Archive</h1>
+        <p>Access all published scientific works and their abstracts.</p>
+        <form action="{{ url_for('main.archive') }}" method="GET" class="search-bar">
+            <input type="text" name="q" placeholder="Search by title, author..." value="{{ q if q }}">
+            {% if sort_by != 'newest' %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
+            {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
+            <button type="submit"><i class="bi bi-search me-1"></i>Search</button>
+        </form>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Sort & Filter Bar -->
+    <div class="filter-bar">
+        <span class="filter-label"><i class="bi bi-sort-down me-1"></i>Sort:</span>
+        <select class="sort-select" onchange="applySortFilter(this.value)">
+            <option value="newest" {{ 'selected' if sort_by == 'newest' }}>Newest First</option>
+            <option value="oldest" {{ 'selected' if sort_by == 'oldest' }}>Oldest First</option>
+            <option value="most_viewed" {{ 'selected' if sort_by == 'most_viewed' }}>Most Viewed</option>
+            <option value="alphabetical" {{ 'selected' if sort_by == 'alphabetical' }}>A → Z</option>
+        </select>
+
+        <span class="filter-label ms-2"><i class="bi bi-funnel me-1"></i>Category:</span>
+        <div class="cat-pills">
+            <a href="{{ url_for('main.archive', sort=sort_by, q=q) }}" class="cat-pill {{ 'active' if not category_filter }}">All</a>
+            {% for cat in active_categories %}
+            <a href="{{ url_for('main.archive', sort=sort_by, q=q, category=cat) }}" 
+               class="cat-pill {{ 'active' if category_filter == cat }}">{{ cat }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Active Filters -->
+    {% if q or category_filter or sort_by != 'newest' %}
+    <div class="active-filters">
+        {% if q %}
+        <span class="active-filter-tag">
+            <i class="bi bi-search"></i> "{{ q }}"
+            <a href="{{ url_for('main.archive', sort=sort_by, category=category_filter) }}"><i class="bi bi-x-lg"></i></a>
+        </span>
+        {% endif %}
+        {% if category_filter %}
+        <span class="active-filter-tag">
+            <i class="bi bi-tag"></i> {{ category_filter }}
+            <a href="{{ url_for('main.archive', sort=sort_by, q=q) }}"><i class="bi bi-x-lg"></i></a>
+        </span>
+        {% endif %}
+        {% if sort_by != 'newest' %}
+        <span class="active-filter-tag">
+            <i class="bi bi-sort-down"></i> {{ sort_by | replace('_', ' ') | capitalize }}
+        </span>
+        {% endif %}
+        <a href="{{ url_for('main.archive') }}" class="active-filter-tag" style="background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.15);text-decoration:none;">
+            <i class="bi bi-x-circle"></i> Clear All
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="results-info">
+        <strong>{{ papers|length }}</strong> paper{{ 's' if papers|length != 1 }} found
+    </div>
+
+    {% if current_user.is_authenticated and current_user.role in ['Admin', 'Editor'] %}
+    <div class="d-flex justify-content-end mb-3 gap-2">
+        <label class="mgmt-toggle">
+            <input class="form-check-input" type="checkbox" id="mgmtModeToggle">
+            <span><i class="bi bi-gear-fill me-1"></i>Management Mode</span>
+        </label>
+        <button id="toggleHiddenList" class="mgmt-toggle border-0" style="cursor:pointer;">
+            <i class="bi bi-eye-slash-fill me-1"></i><span id="toggleText">Show Hidden</span>
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-9">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+                {% for paper in papers %}
+                <div class="col paper-item {{ 'paper-item-hidden d-none' if paper.status == 'Hidden' else 'paper-item-published' }}">
+                    <div class="paper-card h-100 {{ 'hidden-card' if paper.status == 'Hidden' }}">
+                        <!-- Card Image Area (Always visible, taller) -->
+                        <div class="card-img-top-wrapper" style="height: 160px; overflow: hidden; position: relative; background: var(--color-bg); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--color-border);">
+                            {% if paper.images %}
+                                <img src="/uploads/paper_images/{{ paper.images[0].filename }}" class="w-100 h-100" style="object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            {% else %}
+                                <i class="bi bi-journal-text text-muted" style="font-size: 3.5rem; opacity: 0.15;"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="paper-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="cat-badge text-truncate" style="background: rgba(233,69,96,0.1); color: var(--color-accent); font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 50px; text-transform: uppercase; max-width: 70%;">
+                                    {{ paper.category }}
+                                </span>
+                                <small class="text-muted" style="font-size:0.7rem;">
+                                    <i class="bi bi-eye me-1"></i>{{ paper.view_count or 0 }}
+                                </small>
+                            </div>
+                            
+                            <h5 class="mb-2" style="font-size: 0.95rem; line-height: 1.3;"><a href="{{ url_for('main.paper_detail', paper_id=paper.id) }}" class="text-decoration-none text-dark hover-accent" style="font-weight: 700;">{{ paper.title }}</a></h5>
+                            
+                            <p class="abstract-text mb-3" style="font-size: 0.78rem; line-height: 1.4; color: var(--color-text-muted); -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ paper.abstract if paper.abstract else 'No abstract provided.' }}
+                            </p>
+
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-auto">
+                                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text);"><i class="bi bi-person me-1 text-muted"></i>{{ paper.author.full_name }}</span>
+                                <span class="text-muted" style="font-size: 0.65rem;">{{ paper.created_at.strftime('%b %d, %Y') if paper.created_at }}</span>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="{{ url_for('main.paper_detail', paper_id=paper.id) }}" class="btn btn-sm btn-primary flex-fill fw-bold" style="border-radius: var(--radius-sm); font-size:0.75rem;">
+                                    <i class="bi bi-journal-text me-1"></i>Explore
+                                </a>
+                                <a href="/view-file/paper_{{ paper.id }}.pdf" target="_blank" class="btn btn-sm btn-outline-dark flex-fill" style="border-radius: var(--radius-sm); font-weight: 600; font-size:0.75rem;">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                                </a>
+                            </div>
+                            {% if current_user.is_authenticated and current_user.role in ['Admin', 'Editor'] %}
+                            <div class="mgmt-actions mt-2 pt-2 border-top d-flex gap-2">
+                                {% set edit_url = url_for('admin.edit_paper', paper_id=paper.id) if current_user.role == 'Admin' else url_for('editor.edit_paper', paper_id=paper.id) %}
+                                <a href="{{ edit_url }}" class="btn btn-sm btn-warning flex-fill" style="border-radius:var(--radius-sm);font-size:0.7rem;font-weight:600;">
+                                    Edit
+                                </a>
+                                {% set toggle_url = url_for('admin.toggle_visibility', paper_id=paper.id) if current_user.role == 'Admin' else url_for('editor.toggle_visibility', paper_id=paper.id) %}
+                                <a href="{{ toggle_url }}" class="btn btn-sm {{ 'btn-secondary' if paper.status == 'Published' else 'btn-success' }} flex-fill" style="border-radius:var(--radius-sm);font-size:0.7rem;font-weight:600;">
+                                    {{ 'Hide' if paper.status == 'Published' else 'Publish' }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="bi bi-search display-4 text-muted opacity-25"></i>
+                        <p class="text-muted mt-2">No papers found matching your criteria.</p>
+                        <a href="{{ url_for('main.archive') }}" class="btn btn-outline-secondary btn-sm mt-1">Clear Filters</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="sidebar-card" style="background:var(--color-surface); border-radius:var(--radius-lg); border:1px solid var(--color-border); overflow:hidden; box-shadow:var(--shadow-md); margin-bottom:1.5rem;">
+                <div class="card-header" style="background:var(--gradient-primary);color:#fff; padding:1rem 1.2rem; font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">
+                    <i class="bi bi-fire text-warning me-2"></i>Most Viewed
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for p in most_viewed %}
+                    <a href="/view-file/paper_{{ p.id }}.pdf" target="_blank" class="list-group-item list-group-item-action" style="padding:0.8rem 1.2rem; border-color:var(--color-border); transition:var(--transition-fast);">
+                        <h6 style="font-size:0.82rem; font-weight:600; margin:0 0 0.2rem;">{{ p.title }}</h6>
+                        <span class="badge bg-light text-primary border rounded-pill" style="font-size:0.7rem;"><i class="bi bi-eye me-1"></i>{{ p.view_count or 0 }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="weekly-card" style="background:var(--gradient-primary); color:#fff; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-md); position:relative;">
+                <div class="card-body" style="padding:1.5rem; position:relative; z-index:2;">
+                    <h5 style="font-weight:700; font-size:0.95rem; margin-bottom:1rem;"><i class="bi bi-graph-up-arrow me-1"></i>Weekly Popular</h5>
+                    <div class="list-group list-group-flush">
+                        {% for p, count in weekly_popular %}
+                        <a href="/view-file/paper_{{ p.id }}.pdf" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="background:transparent; color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.1); padding:0.6rem 0;">
+                            <h6 class="text-truncate" style="max-width:80%; font-size:0.8rem; font-weight:600; color:#fff; margin:0;">{{ p.title }}</h6>
+                            <span class="badge rounded-pill bg-white text-primary" style="font-size:0.7rem;">+{{ count }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function applySortFilter(sortValue) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('sort', sortValue);
+    window.location.href = '{{ url_for("main.archive") }}?' + params.toString();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const mgmtToggle = document.getElementById('mgmtModeToggle');
+    const hiddenListBtn = document.getElementById('toggleHiddenList');
+    const mgmtSections = document.querySelectorAll('.mgmt-actions');
+    const hiddenPapers = document.querySelectorAll('.paper-item-hidden');
+    const toggleText = document.getElementById('toggleText');
+
+    if (mgmtToggle) {
+        const mgmtActive = localStorage.getItem('mgmtMode') === 'true';
+        mgmtToggle.checked = mgmtActive;
+        mgmtSections.forEach(s => {
+            if (mgmtActive) s.classList.add('show-mgmt');
+        });
+        mgmtToggle.addEventListener('change', function() {
+            localStorage.setItem('mgmtMode', this.checked);
+            mgmtSections.forEach(s => {
+                if (this.checked) {
+                    s.classList.add('show-mgmt');
+                } else {
+                    s.classList.remove('show-mgmt');
+                }
+            });
+        });
+    }
+    if (hiddenListBtn) {
+        const hiddenVisible = localStorage.getItem('hiddenVisible') === 'true';
+        applyHiddenState(hiddenVisible);
+        hiddenListBtn.addEventListener('click', function() {
+            const newState = hiddenPapers[0] && hiddenPapers[0].classList.contains('d-none');
+            localStorage.setItem('hiddenVisible', newState);
+            applyHiddenState(newState);
+        });
+    }
+    function applyHiddenState(show) {
+        hiddenPapers.forEach(p => show ? p.classList.remove('d-none') : p.classList.add('d-none'));
+        if (toggleText) toggleText.innerText = show ? 'Hide Hidden' : 'Show Hidden';
+    }
+});
+</script>
+{% endblock %}

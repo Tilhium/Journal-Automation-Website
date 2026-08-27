@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+<style>
+    .dash-header { background: var(--gradient-primary); padding: 1.5rem 0; position: relative; overflow: hidden; }
+    .dash-header h2 { font-family: var(--font-serif); font-weight: 800; color: #fff; margin: 0; font-size: 1.6rem; }
+    .dash-header p { color: rgba(255,255,255,0.6); margin: 0.2rem 0 0; font-size: 0.85rem; }
+
+    .review-layout { display: flex; height: calc(100vh - 120px); gap: 0; overflow: hidden; margin-top: 0; }
+    
+    /* Sidebar List */
+    .review-list-panel { 
+        width: 380px; flex-shrink: 0; background: var(--color-surface); 
+        border-right: 1px solid var(--color-border); display: flex; flex-direction: column; 
+    }
+    .panel-tabs { padding: 1rem; border-bottom: 1px solid var(--color-border); }
+    .pill-tabs { background: var(--color-bg); border-radius: 50px; padding: 0.25rem; display: flex; gap: 0.2rem; }
+    .pill-tab { 
+        flex: 1; text-align: center; padding: 0.45rem; border-radius: 50px; 
+        font-size: 0.78rem; font-weight: 700; border: none; background: none; 
+        color: var(--color-text-muted); transition: var(--transition-fast); 
+    }
+    .pill-tab.active { background: var(--color-surface); color: var(--color-primary); box-shadow: var(--shadow-sm); }
+    
+    .list-scroll { flex: 1; overflow-y: auto; padding: 1rem; }
+    .review-card {
+        background: var(--color-surface); border-radius: var(--radius-md);
+        border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary);
+        margin-bottom: 0.8rem; cursor: pointer; transition: var(--transition-fast);
+    }
+    .review-card:hover { transform: translateX(4px); border-color: var(--color-primary); }
+    .review-card.active { background: rgba(233,69,96,0.03); border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
+    .review-card-body { padding: 0.9rem 1.1rem; }
+    .review-card h6 { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.2rem; line-height: 1.4; }
+    .review-card .meta { font-size: 0.75rem; color: var(--color-text-muted); display: flex; justify-content: space-between; }
+    
+    /* PDF Viewer Area */
+    .review-viewer-panel { flex: 1; background: #525659; position: relative; display: flex; flex-direction: column; }
+    .viewer-toolbar { 
+        background: #323639; padding: 0.5rem 1rem; color: #fff; 
+        display: flex; justify-content: space-between; align-items: center; z-index: 10;
+    }
+    .pdf-container { flex: 1; overflow: auto; position: relative; display: flex; justify-content: center; padding: 1.5rem; }
+    .pdf-page-wrapper { position: relative; display: inline-block; box-shadow: 0 5px 25px rgba(0,0,0,0.4); }
+    canvas { display: block; }
+    
+    /* Annotation Layer */
+    #annotationLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+    .annotation-rect { 
+        position: absolute; border: 2px solid var(--color-accent); background: rgba(233,69,96,0.15); 
+        border-radius: 2px; pointer-events: auto;
+    }
+    .annotation-rect:hover .ann-tooltip { display: block; }
+    .ann-tooltip {
+        position: absolute; bottom: 100%; left: 0; background: #1e293b; color: #fff;
+        padding: 0.5rem 0.8rem; border-radius: 4px; font-size: 0.75rem; width: 200px;
+        margin-bottom: 8px; display: none; z-index: 100; box-shadow: var(--shadow-lg);
+    }
+    .selection-rect { 
+        position: absolute; border: 2px dashed #fff; background: rgba(255,255,255,0.2); 
+        pointer-events: none; display: none; 
+    }
+
+    /* Floating Tools */
+    .floating-tools {
+        position: absolute; bottom: 2rem; right: 2rem; display: flex; flex-direction: column; gap: 0.8rem; z-index: 20;
+    }
+    .tool-btn {
+        width: 50px; height: 50px; border-radius: 50%; background: var(--gradient-primary);
+        color: #fff; border: none; display: flex; align-items: center; justify-content: center;
+        box-shadow: var(--shadow-lg); transition: var(--transition-fast);
+    }
+    .tool-btn:hover { transform: scale(1.1); box-shadow: 0 8px 25px rgba(233,69,96,0.4); }
+    .tool-btn.btn-decision { background: var(--gradient-accent); width: 160px; border-radius: 50px; font-weight: 700; gap: 0.5rem; }
+
+    /* Decision Modal */
+    .modal-content { border-radius: var(--radius-lg); border: none; overflow: hidden; }
+    .modal-header { background: var(--gradient-primary); color: #fff; border: none; }
+    .modal-footer { border-top: 1px solid var(--color-border); }
+
+    .placeholder-view {
+        height: 100%; display: flex; flex-direction: column; justify-content: center;
+        align-items: center; color: rgba(255,255,255,0.4); text-align: center; padding: 3rem;
+    }
+    .placeholder-view i { font-size: 5rem; margin-bottom: 1.5rem; }
+
+    .severity-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .sev-Critical { background: #ef4444; }
+    .sev-Major { background: #f59e0b; }
+    .sev-Minor { background: #3b82f6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-highlighter me-2"></i>Reviewer Workspace</h2>
+            <p>Select a manuscript to start annotating and submit your decision.</p>
+        </div>
+        <div class="d-flex gap-3">
+            <div class="text-end">
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase;">Stats</div>
+                <div style="color: #fff; font-weight: 700;">{{ pending|length }} Pending • {{ completed|length }} Done</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="review-layout">
+    <!-- LEFT: List Panel -->
+    <div class="review-list-panel">
+        <div class="panel-tabs">
+            <div class="pill-tabs">
+                <button class="pill-tab active" onclick="switchTab('pending', this)">Pending</button>
+                <button class="pill-tab" onclick="switchTab('completed', this)">Completed</button>
+            </div>
+        </div>
+        
+        <div class="list-scroll" id="pending-list">
+            {% for review in pending %}
+            <div class="review-card" id="card-{{ review.id }}" style="{{ 'border-left-color: #ef4444;' if review.deadline_status == 'Late' else '' }}">
+                <div class="review-card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h6>{{ review.paper.title | truncate(60) }}</h6>
+                        {% if review.paper.status == 'Revision Submitted' %}
+                        <span class="badge bg-warning text-dark p-1" style="font-size:0.6rem;">REVISION</span>
+                        {% endif %}
+                    </div>
+                    <div class="meta mb-2">
+                        <span><i class="bi bi-person me-1"></i>{{ review.paper.author.full_name | truncate(15) }}</span>
+                        <span><i class="bi bi-calendar3 me-1"></i>{{ review.assigned_at.strftime('%b %d') if review.assigned_at }}</span>
+                    </div>
+                    {% if review.deadline %}
+                    <div class="mb-2">
+                        {% if review.deadline_status == 'Late' %}
+                            <span style="font-size:0.72rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:50px; background:#fee2e2; color:#dc2626; display:inline-flex; align-items:center; gap:0.3rem;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Overdue — {{ review.deadline.strftime('%d %b %Y') }}
+                            </span>
+                        {% else %}
+                            <span style="font-size:0.72rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:50px; background:#fef3c7; color:#d97706; display:inline-flex; align-items:center; gap:0.3rem;">
+                                <i class="bi bi-clock"></i> Due {{ review.deadline.strftime('%d %b %Y') }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info flex-fill fw-bold" 
+                                onclick='loadManuscript({{ review.id }}, "{{ review.paper.versions[-1].file_path if review.paper.versions else "paper_" ~ review.paper.id ~ ".pdf" }}", {{ review.paper.title|tojson|safe }})'>
+                            <i class="bi bi-eye me-1"></i>Review
+                        </button>
+                        <button class="btn btn-sm btn-primary flex-fill fw-bold" 
+                                data-bs-toggle="modal" data-bs-target="#decisionModal"
+                                onclick='prepareDecision({{ review.id }}, {{ review.paper.title|tojson|safe }})'>
+                            <i class="bi bi-check2-square me-1"></i>Decision
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="list-scroll" id="completed-list" style="display: none;">
+            {% for review in completed %}
+            <div class="review-card" style="border-left-color: #34d399;">
+                <div class="review-card-body">
+                    <h6>{{ review.paper.title | truncate(60) }}</h6>
+                    <div class="meta">
+                        <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>{{ review.paper.status }}</span>
+                        <span>{{ review.completed_at.strftime('%b %d') if review.completed_at }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- RIGHT: Viewer Panel -->
+    <div class="review-viewer-panel">
+        <div id="viewer-placeholder" class="placeholder-view">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <h3>No Manuscript Selected</h3>
+            <p>Select a paper from the list on the left to begin your review and add highlights.</p>
+        </div>
+
+        <div id="viewer-active" style="display: none; height: 100%; flex-direction: column;">
+            <div class="viewer-toolbar">
+                <div class="d-flex align-items-center gap-3">
+                    <span id="activeTitle" class="fw-bold text-truncate" style="max-width: 300px;">Manuscript</span>
+                    <span class="badge bg-light text-dark" id="pageInfo">Page 1 / -</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-light" onclick="prevPage()"><i class="bi bi-chevron-left"></i></button>
+                    <button class="btn btn-sm btn-outline-light" onclick="nextPage()"><i class="bi bi-chevron-right"></i></button>
+                    <div class="vr mx-1"></div>
+                    <button class="btn btn-sm btn-outline-light" onclick="zoomIn()"><i class="bi bi-zoom-in"></i></button>
+                    <button class="btn btn-sm btn-outline-light" onclick="zoomOut()"><i class="bi bi-zoom-out"></i></button>
+                    <button class="btn btn-sm btn-danger ms-2" onclick="saveAnnotations()"><i class="bi bi-save me-1"></i>Save Work</button>
+                </div>
+            </div>
+
+            <div class="pdf-container" id="pdfContainer">
+                <div class="pdf-page-wrapper" id="pageWrapper">
+                    <canvas id="pdfCanvas"></canvas>
+                    <div id="annotationLayer"></div>
+                    <div id="selectionRect" class="selection-rect"></div>
+                </div>
+            </div>
+
+            <div class="floating-tools">
+                <button class="tool-btn btn-decision" data-bs-toggle="modal" data-bs-target="#decisionModal">
+                    <i class="bi bi-check2-square"></i>Final Decision
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Annotation Modal -->
+<div class="modal fade" id="annModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold">Add Annotation</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Comment:</label>
+                    <textarea id="annComment" class="form-control form-control-sm" rows="3" placeholder="Explain the issue..."></textarea>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label small fw-bold">Severity:</label>
+                    <select id="annSeverity" class="form-select form-select-sm">
+                        <option value="Critical">Critical</option>
+                        <option value="Major" selected>Major</option>
+                        <option value="Minor">Minor</option>
+                        <option value="Suggestion">Suggestion</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-primary w-100" onclick="confirmAnnotation()">Add Highlight</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Decision Modal -->
+<div class="modal fade" id="decisionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Submit Final Evaluation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="decisionForm" method="POST">
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small">
+                        <i class="bi bi-info-circle me-1"></i> Ensure you have saved your annotations before submitting.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Overall Feedback:</label>
+                        <textarea name="comment" class="form-control" rows="4" placeholder="Your general summary for the author..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Evaluation Report (Optional):</label>
+                        <input type="file" name="report_file" class="form-control">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold">Decision:</label>
+                        <select name="decision" class="form-select" required>
+                            <option value="" disabled selected>Choose decision...</option>
+                            <option value="Accepted">Accept Manuscript</option>
+                            <option value="Rejected">Reject Manuscript</option>
+                            <option value="Revision Required">Request Revision</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Submit Evaluation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let pdfDoc = null, pageNum = 1, scale = 1.3;
+    let activeReviewId = null, annotations = [];
+    let isDrawing = false, startX, startY, currentRect = null;
+    
+    const canvas = document.getElementById('pdfCanvas');
+    const ctx = canvas.getContext('2d');
+    const annLayer = document.getElementById('annotationLayer');
+    const selRect = document.getElementById('selectionRect');
+    const annModal = new bootstrap.Modal(document.getElementById('annModal'));
+
+    function switchTab(tab, btn) {
+        document.getElementById('pending-list').style.display = tab === 'pending' ? 'block' : 'none';
+        document.getElementById('completed-list').style.display = tab === 'completed' ? 'block' : 'none';
+        document.querySelectorAll('.pill-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function loadManuscript(reviewId, filename, title) {
+        activeReviewId = reviewId;
+        annotations = [];
+        pageNum = 1;
+        
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        document.getElementById('viewer-active').style.display = 'flex';
+        document.getElementById('activeTitle').textContent = title;
+        document.getElementById('decisionForm').action = "/submit-review/" + reviewId;
+        
+        document.querySelectorAll('.review-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('card-' + reviewId).classList.add('active');
+
+        // Load PDF
+        const url = "/view-file/" + filename;
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            pdfDoc = pdf;
+            renderPage(pageNum);
+            loadExistingAnnotations(reviewId);
+        }).catch(err => {
+            alert("Could not load PDF. It might be missing or corrupted.");
+        });
+    }
+
+    function loadExistingAnnotations(reviewId) {
+        fetch('/api/annotations/' + reviewId)
+            .then(r => r.json())
+            .then(data => {
+                annotations = data.annotations || [];
+                renderAnnotations();
+            });
+    }
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(page => {
+            const viewport = page.getViewport({ scale: scale });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+                document.getElementById('pageInfo').textContent = `Page ${num} / ${pdfDoc.numPages}`;
+                annLayer.style.width = viewport.width + 'px';
+                annLayer.style.height = viewport.height + 'px';
+                renderAnnotations();
+            });
+        });
+    }
+
+    function renderAnnotations() {
+        annLayer.querySelectorAll('.annotation-rect').forEach(el => el.remove());
+        annotations.forEach((ann, idx) => {
+            if (ann.page_number === pageNum) {
+                const el = document.createElement('div');
+                el.className = 'annotation-rect';
+                el.style.left = ann.x + '%';
+                el.style.top = ann.y + '%';
+                el.style.width = ann.width + '%';
+                el.style.height = ann.height + '%';
+                el.style.borderColor = getSeverityColor(ann.severity);
+                
+                el.innerHTML = `
+                    <div class="ann-tooltip">
+                        <div class="fw-bold mb-1"><span class="severity-dot sev-${ann.severity}"></span>${ann.severity}</div>
+                        <div>${ann.comment}</div>
+                        <button class="btn btn-link btn-sm text-danger p-0 mt-2" onclick="deleteAnnotation(${idx})">Delete</button>
+                    </div>
+                `;
+                annLayer.appendChild(el);
+            }
+        });
+    }
+
+    function getSeverityColor(sev) {
+        if (sev === 'Critical') return '#ef4444';
+        if (sev === 'Major') return '#f59e0b';
+        if (sev === 'Minor') return '#3b82f6';
+        return '#8b5cf6';
+    }
+
+    // Drawing logic
+    annLayer.onmousedown = e => {
+        if (!pdfDoc) return;
+        isDrawing = true;
+        const rect = annLayer.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        selRect.style.display = 'block';
+        selRect.style.left = startX + 'px';
+        selRect.style.top = startY + 'px';
+        selRect.style.width = '0px';
+        selRect.style.height = '0px';
+    };
+
+    window.onmousemove = e => {
+        if (!isDrawing) return;
+        const rect = annLayer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const w = x - startX;
+        const h = y - startY;
+        
+        selRect.style.width = Math.abs(w) + 'px';
+        selRect.style.height = Math.abs(h) + 'px';
+        selRect.style.left = (w > 0 ? startX : x) + 'px';
+        selRect.style.top = (h > 0 ? startY : y) + 'px';
+    };
+
+    window.onmouseup = e => {
+        if (!isDrawing) return;
+        isDrawing = false;
+        
+        const rect = annLayer.getBoundingClientRect();
+        const finalW = parseFloat(selRect.style.width);
+        const finalH = parseFloat(selRect.style.height);
+        
+        if (finalW > 5 && finalH > 5) {
+            currentRect = {
+                x: (parseFloat(selRect.style.left) / rect.width) * 100,
+                y: (parseFloat(selRect.style.top) / rect.height) * 100,
+                width: (finalW / rect.width) * 100,
+                height: (finalH / rect.height) * 100
+            };
+            annModal.show();
+        }
+        selRect.style.display = 'none';
+    };
+
+    function confirmAnnotation() {
+        const comment = document.getElementById('annComment').value;
+        const severity = document.getElementById('annSeverity').value;
+        
+        if (!comment) return alert("Please enter a comment.");
+        
+        annotations.push({
+            ...currentRect,
+            page_number: pageNum,
+            comment: comment,
+            severity: severity
+        });
+        
+        document.getElementById('annComment').value = '';
+        annModal.hide();
+        renderAnnotations();
+    }
+
+    function deleteAnnotation(idx) {
+        annotations.splice(idx, 1);
+        renderAnnotations();
+    }
+
+    function saveAnnotations() {
+        if (!activeReviewId) return;
+        fetch('/api/annotations/' + activeReviewId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ annotations: annotations })
+        }).then(r => r.json()).then(data => {
+            if (data.success) alert("Annotations saved successfully!");
+        });
+    }
+
+    function prepareDecision(reviewId, title) {
+        document.getElementById('decisionForm').action = "/submit-review/" + reviewId;
+    }
+
+    function prevPage() { if (pageNum > 1) { pageNum--; renderPage(pageNum); } }
+    function nextPage() { if (pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); } }
+    function zoomIn() { scale += 0.2; renderPage(pageNum); }
+    function zoomOut() { scale = Math.max(0.5, scale - 0.2); renderPage(pageNum); }
+
+</script>
+{% endblock %}

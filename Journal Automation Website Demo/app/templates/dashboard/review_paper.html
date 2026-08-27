@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+<style>
+    .review-wrapper { display: flex; height: calc(100vh - 70px); overflow: hidden; }
+    .pdf-panel { flex: 1; background: #525659; position: relative; display: flex; flex-direction: column; }
+    .annotations-panel {
+        width: 400px; background: var(--color-surface); border-left: 1px solid var(--color-border);
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+    .pdf-toolbar {
+        background: var(--gradient-primary); padding: 0.6rem 1rem;
+        display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    }
+    .pdf-toolbar .btn { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); font-size: 0.8rem; }
+    .pdf-toolbar .btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .pdf-toolbar .page-info { color: rgba(255,255,255,0.7); font-size: 0.82rem; font-weight: 500; }
+    .pdf-container { flex: 1; overflow: auto; position: relative; display: flex; justify-content: center; padding: 1rem; }
+    .pdf-page-wrapper { position: relative; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .pdf-page-wrapper canvas { display: block; }
+    .annotation-overlay {
+        position: absolute; border: 2px solid; border-radius: 3px; cursor: pointer;
+        opacity: 0.3; transition: opacity 0.2s;
+    }
+    .annotation-overlay:hover { opacity: 0.6; }
+    .annotation-overlay.severity-Critical { border-color: #ef4444; background: rgba(239,68,68,0.15); }
+    .annotation-overlay.severity-Major { border-color: #f59e0b; background: rgba(245,158,11,0.15); }
+    .annotation-overlay.severity-Minor { border-color: #3b82f6; background: rgba(59,130,246,0.15); }
+    .annotation-overlay.severity-Suggestion { border-color: #8b5cf6; background: rgba(139,92,246,0.15); }
+    .annotation-overlay.resolved { opacity: 0.15; border-style: dashed; }
+    .annotation-overlay .ann-number {
+        position: absolute; top: -10px; left: -10px;
+        width: 20px; height: 20px; border-radius: 50%;
+        font-size: 0.65rem; font-weight: 700; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .annotation-overlay.severity-Critical .ann-number { background: #ef4444; }
+    .annotation-overlay.severity-Major .ann-number { background: #f59e0b; }
+    .annotation-overlay.severity-Minor .ann-number { background: #3b82f6; }
+    .annotation-overlay.severity-Suggestion .ann-number { background: #8b5cf6; }
+    .ann-header {
+        background: var(--gradient-primary); padding: 1.2rem;
+        color: #fff;
+    }
+    .ann-header h5 { font-family: var(--font-serif); font-weight: 700; margin: 0 0 0.3rem; font-size: 1.05rem; }
+    .ann-header .sub { color: rgba(255,255,255,0.6); font-size: 0.8rem; }
+    .ann-stats { display: flex; gap: 0.8rem; margin-top: 0.8rem; }
+    .ann-stat {
+        background: rgba(255,255,255,0.1); border-radius: var(--radius-sm);
+        padding: 0.4rem 0.7rem; font-size: 0.75rem; font-weight: 600;
+    }
+    .reviewer-comment {
+        padding: 1rem 1.2rem; border-bottom: 1px solid var(--color-border);
+        background: rgba(233,69,96,0.03);
+    }
+    .reviewer-comment h6 { font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .reviewer-comment p { font-size: 0.85rem; color: var(--color-text-muted); margin: 0; font-style: italic; line-height: 1.6; }
+    .ann-list { flex: 1; overflow-y: auto; padding: 0; }
+    .ann-item {
+        padding: 1rem 1.2rem; border-bottom: 1px solid var(--color-border);
+        cursor: pointer; transition: var(--transition-fast);
+    }
+    .ann-item:hover { background: var(--color-bg); }
+    .ann-item.active { background: rgba(233,69,96,0.05); border-left: 3px solid var(--color-accent); }
+    .ann-item.resolved-item { opacity: 0.5; }
+    .ann-item .ann-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; flex-wrap: wrap; }
+    .ann-item .ann-page {
+        font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: var(--color-text-muted);
+    }
+    .severity-tag {
+        font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem;
+        border-radius: 50px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .severity-tag.Critical { background: rgba(239,68,68,0.1); color: #ef4444; }
+    .severity-tag.Major { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .severity-tag.Minor { background: rgba(59,130,246,0.1); color: #3b82f6; }
+    .severity-tag.Suggestion { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+    .ann-item .ann-comment { font-size: 0.85rem; line-height: 1.6; color: var(--color-text); }
+    .ann-item .ann-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+    .ann-item .resolve-btn {
+        font-size: 0.72rem; font-weight: 600; border-radius: 50px;
+        padding: 0.25rem 0.7rem; transition: var(--transition-fast);
+    }
+    /* Resend section */
+    .resend-section {
+        padding: 1.2rem; border-top: 2px solid var(--color-border);
+        background: var(--color-bg);
+    }
+    .resend-section h6 { font-size: 0.82rem; font-weight: 700; margin-bottom: 0.8rem; }
+    .progress-bar-wrapper { background: var(--color-border); border-radius: 50px; height: 8px; margin-bottom: 0.8rem; overflow: hidden; }
+    .progress-bar-inner { height: 100%; border-radius: 50px; transition: width 0.5s ease; }
+    .progress-text { font-size: 0.75rem; color: var(--color-text-muted); text-align: center; margin-bottom: 0.8rem; }
+    .btn-resend {
+        background: var(--gradient-accent); color: #fff; border: none;
+        border-radius: var(--radius-sm); font-weight: 700; font-size: 0.88rem;
+        padding: 0.65rem; transition: var(--transition-fast);
+        box-shadow: 0 4px 15px rgba(233,69,96,0.3);
+    }
+    .btn-resend:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(233,69,96,0.4); color: #fff; }
+    .btn-resend:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+    .btn-upload-rev {
+        background: var(--gradient-primary); color: #fff; border: none;
+        border-radius: var(--radius-sm); font-weight: 600; font-size: 0.82rem;
+        padding: 0.5rem; transition: var(--transition-fast);
+    }
+    .btn-upload-rev:hover { color: #fff; }
+    @media (max-width: 991.98px) {
+        .review-wrapper { flex-direction: column; height: auto; }
+        .pdf-panel { min-height: 50vh; }
+        .annotations-panel { width: 100%; max-height: 50vh; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-wrapper">
+    <!-- LEFT: PDF Viewer -->
+    <div class="pdf-panel">
+        <div class="pdf-toolbar">
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('author.dashboard') }}" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <span style="color:#fff;font-weight:600;font-size:0.88rem;" class="text-truncate" title="{{ paper.title }}">
+                    {{ paper.title | truncate(40) }}
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-light" onclick="prevPage()"><i class="bi bi-chevron-left"></i></button>
+                <span class="page-info">Page <span id="currentPage">1</span> / <span id="totalPages">-</span></span>
+                <button class="btn btn-sm btn-outline-light" onclick="nextPage()"><i class="bi bi-chevron-right"></i></button>
+                <button class="btn btn-sm btn-outline-light" onclick="zoomIn()"><i class="bi bi-zoom-in"></i></button>
+                <button class="btn btn-sm btn-outline-light" onclick="zoomOut()"><i class="bi bi-zoom-out"></i></button>
+            </div>
+        </div>
+        <div class="pdf-container" id="pdfContainer">
+            <div class="pdf-page-wrapper" id="pageWrapper">
+                <canvas id="pdfCanvas"></canvas>
+                <div id="annotationLayer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Annotations List -->
+    <div class="annotations-panel">
+        <div class="ann-header">
+            <h5><i class="bi bi-exclamation-triangle me-2"></i>Review Feedback</h5>
+            <div class="sub">{{ paper.title | truncate(50) }}</div>
+            <div class="ann-stats">
+                <div class="ann-stat"><i class="bi bi-flag-fill me-1"></i><span id="issueCount">{{ total_annotations }}</span> Issues</div>
+                <div class="ann-stat" style="color: #34d399;"><i class="bi bi-check-circle-fill me-1"></i><span id="resolvedCount">{{ resolved_count }}</span> Fixed</div>
+            </div>
+        </div>
+
+        {% if review and review.comment %}
+        <div class="reviewer-comment">
+            <h6><i class="bi bi-chat-quote me-1"></i>Reviewer's Note</h6>
+            <p>"{{ review.comment }}"</p>
+        </div>
+        {% endif %}
+
+        <div class="ann-list" id="annotationList">
+            {% if annotations %}
+                {% for ann in annotations %}
+                <div class="ann-item {% if ann.is_resolved %}resolved-item{% endif %}" 
+                     data-page="{{ ann.page_number }}" data-id="{{ ann.id }}"
+                     onclick="goToAnnotation({{ ann.page_number }}, {{ ann.id }})">
+                    <div class="ann-top">
+                        <span class="ann-page"><i class="bi bi-file-earmark me-1"></i>Page {{ ann.page_number }}</span>
+                        <span class="severity-tag {{ ann.severity }}">{{ ann.severity }}</span>
+                        {% if ann.is_resolved %}
+                            <span class="severity-tag" style="background:rgba(14,173,105,0.1);color:#0ead69;">
+                                <i class="bi bi-check-circle-fill me-1"></i>Fixed
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="ann-comment">{{ ann.comment }}</div>
+                    <div class="ann-actions">
+                        {% if ann.is_resolved %}
+                        <button class="resolve-btn btn btn-sm btn-outline-secondary"
+                                onclick="event.stopPropagation(); toggleResolve({{ ann.id }}, this)">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Undo
+                        </button>
+                        {% else %}
+                        <button class="resolve-btn btn btn-sm btn-success"
+                                onclick="event.stopPropagation(); toggleResolve({{ ann.id }}, this)">
+                            <i class="bi bi-check-circle me-1"></i>Mark as Fixed
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-chat-square-text display-4 d-block mb-2 opacity-25"></i>
+                    <p class="small">No specific annotations from the reviewer.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Resend Section -->
+        {% if paper.status in ['Revision Required', 'Rejected'] %}
+        <div class="resend-section">
+            <h6><i class="bi bi-arrow-repeat me-1"></i>Submit Revision</h6>
+            
+            <!-- Progress bar -->
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar-inner" id="progressBar" 
+                     style="width: {{ (resolved_count / total_annotations * 100) if total_annotations > 0 else 0 }}%; background: {% if total_annotations > 0 and resolved_count == total_annotations %}#0ead69{% else %}var(--gradient-accent){% endif %};"></div>
+            </div>
+            <div class="progress-text" id="progressText">
+                <span id="progressResolvedText">{{ resolved_count }}</span> / {{ total_annotations }} issues marked as fixed
+            </div>
+
+            <form action="{{ url_for('author.review_paper', paper_id=paper.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-2">
+                    <input type="file" name="paper_file" class="form-control form-control-sm" accept=".pdf,.docx" required>
+                    <div class="form-text" style="font-size:0.72rem;"><i class="bi bi-info-circle me-1"></i>Upload corrected manuscript</div>
+                </div>
+                <button type="submit" class="btn btn-resend w-100" id="resendBtn">
+                    <i class="bi bi-send me-1"></i>Resend for Review (v{{ paper.versions|length + 1 }})
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let pdfDoc = null, pageNum = 1, scale = 1.3;
+    const canvas = document.getElementById('pdfCanvas');
+    const ctx = canvas.getContext('2d');
+    const paperId = {{ paper.id }};
+    const totalAnnotations = {{ total_annotations }};
+
+    const annotationsData = [
+        {% for ann in annotations %}
+        {id:{{ann.id}},page_number:{{ann.page_number}},x:{{ann.x}},y:{{ann.y}},width:{{ann.width}},height:{{ann.height}},comment:"{{ann.comment|replace('\"','\\\"')}}",severity:"{{ann.severity}}",is_resolved:{{ann.is_resolved|lower}}}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const pdfUrl = '/view-file/paper_' + paperId + '.pdf';
+    pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
+        pdfDoc = pdf;
+        document.getElementById('totalPages').textContent = pdf.numPages;
+        renderPage(pageNum);
+    }).catch(function(err) {
+        console.error('PDF load error:', err);
+        document.getElementById('pdfContainer').innerHTML = '<div class="text-center text-white py-5"><i class="bi bi-exclamation-triangle display-4"></i><p class="mt-2">Could not load PDF file.</p></div>';
+    });
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(function(page) {
+            const viewport = page.getViewport({ scale: scale });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                document.getElementById('currentPage').textContent = num;
+                renderAnnotations(num, viewport);
+            });
+        });
+    }
+
+    function renderAnnotations(pageNum, viewport) {
+        const layer = document.getElementById('annotationLayer');
+        layer.innerHTML = '';
+        layer.style.width = viewport.width + 'px';
+        layer.style.height = viewport.height + 'px';
+        layer.style.position = 'absolute';
+        layer.style.top = '0';
+        layer.style.left = '0';
+
+        let counter = 1;
+        annotationsData.forEach(function(ann) {
+            if (ann.page_number === pageNum) {
+                const el = document.createElement('div');
+                el.className = 'annotation-overlay severity-' + ann.severity + (ann.is_resolved ? ' resolved' : '');
+                el.style.left = (ann.x / 100 * viewport.width) + 'px';
+                el.style.top = (ann.y / 100 * viewport.height) + 'px';
+                el.style.width = (ann.width / 100 * viewport.width) + 'px';
+                el.style.height = (ann.height / 100 * viewport.height) + 'px';
+                el.title = ann.comment;
+                el.innerHTML = '<span class="ann-number">' + counter + '</span>';
+                el.onclick = function() { highlightAnnotationItem(ann.id); };
+                layer.appendChild(el);
+                counter++;
+            }
+        });
+    }
+
+    function prevPage() { if (pageNum > 1) { pageNum--; renderPage(pageNum); } }
+    function nextPage() { if (pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); } }
+    function zoomIn() { scale = Math.min(scale + 0.2, 3); renderPage(pageNum); }
+    function zoomOut() { scale = Math.max(scale - 0.2, 0.5); renderPage(pageNum); }
+
+    function goToAnnotation(page, annId) {
+        pageNum = page;
+        renderPage(pageNum);
+        highlightAnnotationItem(annId);
+    }
+
+    function highlightAnnotationItem(annId) {
+        document.querySelectorAll('.ann-item').forEach(el => el.classList.remove('active'));
+        const item = document.querySelector('.ann-item[data-id="' + annId + '"]');
+        if (item) {
+            item.classList.add('active');
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function updateProgress() {
+        const resolved = annotationsData.filter(a => a.is_resolved).length;
+        const pct = totalAnnotations > 0 ? (resolved / totalAnnotations * 100) : 0;
+        const bar = document.getElementById('progressBar');
+        const text = document.getElementById('progressResolvedText');
+        const countEl = document.getElementById('resolvedCount');
+        if (bar) {
+            bar.style.width = pct + '%';
+            bar.style.background = (resolved === totalAnnotations && totalAnnotations > 0) ? '#0ead69' : '';
+        }
+        if (text) text.textContent = resolved;
+        if (countEl) countEl.textContent = resolved;
+    }
+
+    function toggleResolve(annId, btn) {
+        fetch('/api/annotations/' + annId + '/resolve', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const item = btn.closest('.ann-item');
+                    const annObj = annotationsData.find(a => a.id === annId);
+                    if (annObj) annObj.is_resolved = data.is_resolved;
+
+                    if (data.is_resolved) {
+                        item.classList.add('resolved-item');
+                        // Update resolved badge
+                        let topDiv = item.querySelector('.ann-top');
+                        let existingBadge = topDiv.querySelector('.fixed-badge');
+                        if (!existingBadge) {
+                            let badge = document.createElement('span');
+                            badge.className = 'severity-tag fixed-badge';
+                            badge.style.background = 'rgba(14,173,105,0.1)';
+                            badge.style.color = '#0ead69';
+                            badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Fixed';
+                            topDiv.appendChild(badge);
+                        }
+                        btn.className = 'resolve-btn btn btn-sm btn-outline-secondary';
+                        btn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Undo';
+                    } else {
+                        item.classList.remove('resolved-item');
+                        let existingBadge = item.querySelector('.fixed-badge');
+                        if (existingBadge) existingBadge.remove();
+                        btn.className = 'resolve-btn btn btn-sm btn-success';
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Fixed';
+                    }
+                    updateProgress();
+                    renderPage(pageNum);
+                }
+            });
+    }
+</script>
+{% endblock %}

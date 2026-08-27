@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .form-page { padding: 3rem 0; }
+    .form-card { background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); border:1px solid var(--color-border); overflow:hidden; }
+    .form-card-header { background:var(--gradient-primary); padding:1.5rem 2rem; color:#fff; }
+    .form-card-header h3 { font-family:var(--font-serif); font-weight:700; margin:0; font-size:1.2rem; }
+    .form-card-header small { color:rgba(255,255,255,0.6); }
+    .form-card-body { padding:2rem; }
+    .form-card-body .form-label { font-weight:600; font-size:0.88rem; }
+    .form-card-body .form-control { border-radius:var(--radius-sm); padding:0.7rem 1rem; border:1.5px solid var(--color-border); }
+    .form-card-body .form-control:focus { border-color:var(--color-accent); box-shadow:0 0 0 3px rgba(233,69,96,0.1); }
+    .btn-form { background:var(--gradient-accent); color:#fff; border:none; border-radius:var(--radius-sm); padding:0.6rem 2rem; font-weight:700; font-size:0.9rem; transition:var(--transition-fast); box-shadow:0 4px 15px rgba(233,69,96,0.3); }
+    .btn-form:hover { transform:translateY(-2px); box-shadow:0 6px 25px rgba(233,69,96,0.4); color:#fff; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="form-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <h3><i class="bi bi-pencil-square me-2"></i>Edit Paper</h3>
+                        <small>ID: #{{ paper.id }} — Status: {{ paper.status }}</small>
+                    </div>
+                    <div class="form-card-body">
+                        <form method="POST">
+                            <div class="mb-4">
+                                <label class="form-label">Paper Title</label>
+                                <input type="text" name="title" class="form-control" value="{{ paper.title }}" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Abstract</label>
+                                <textarea name="abstract" class="form-control" rows="8" required>{{ paper.abstract }}</textarea>
+                                <div class="form-text">Update the academic abstract of the paper.</div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('main.archive') }}" class="text-muted text-decoration-none" style="font-size:0.88rem;">
+                                    <i class="bi bi-arrow-left me-1"></i>Back
+                                </a>
+                                <button type="submit" class="btn btn-form"><i class="bi bi-check-circle me-1"></i>Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

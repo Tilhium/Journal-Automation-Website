@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+/* ══════════════ HERO ══════════════ */
+.hero-section {
+    background: var(--gradient-hero);
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 6rem 0;
+}
+.hero-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(233,69,96,0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(83,52,131,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 60% 80%, rgba(15,52,96,0.2) 0%, transparent 50%);
+    z-index: 1;
+}
+.hero-content { position: relative; z-index: 2; }
+.hero-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 0.8rem;
+    color: rgba(255,255,255,0.8); font-weight: 500; margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+.hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #0ead69; animation: pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+.hero-title {
+    font-family: var(--font-serif); font-size: clamp(2.5rem,5vw,4rem);
+    font-weight: 800; color: #fff; line-height: 1.15; margin-bottom: 1.5rem;
+}
+.hero-title .accent { color: var(--color-accent); }
+.hero-desc { font-size: 1.1rem; color: rgba(255,255,255,0.65); max-width: 540px; line-height: 1.8; margin-bottom: 2.5rem; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+.btn-hero-primary {
+    background: var(--gradient-accent); color: #fff; border: none;
+    padding: 0.8rem 2rem; border-radius: 50px; font-weight: 600; font-size: 0.95rem;
+    transition: var(--transition-fast); box-shadow: 0 4px 20px rgba(233,69,96,0.35);
+}
+.btn-hero-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(233,69,96,0.5); color: #fff; }
+.btn-hero-secondary {
+    background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.8rem 2rem; border-radius: 50px; font-weight: 600; font-size: 0.95rem;
+    transition: var(--transition-fast); backdrop-filter: blur(10px);
+}
+.btn-hero-secondary:hover { background: rgba(255,255,255,0.15); color: #fff; transform: translateY(-3px); }
+
+/* Floating shapes */
+.floating-shape {
+    position: absolute; border-radius: 50%; opacity: 0.06; z-index: 0;
+    animation: float-shape 20s ease-in-out infinite;
+}
+.shape-1 { width: 400px; height: 400px; background: var(--color-accent); top: -100px; right: -100px; animation-delay: 0s; }
+.shape-2 { width: 300px; height: 300px; background: var(--color-secondary); bottom: -80px; left: -80px; animation-delay: -7s; }
+.shape-3 { width: 200px; height: 200px; background: var(--color-info); top: 40%; right: 15%; animation-delay: -14s; }
+@keyframes float-shape { 0%,100%{ transform: translate(0,0) scale(1); } 33%{ transform: translate(30px,-30px) scale(1.05); } 66%{ transform: translate(-20px,20px) scale(0.95); } }
+
+/* Hero right visual */
+.hero-visual { position: relative; z-index: 2; }
+.hero-card-stack { position: relative; height: 380px; }
+.hero-card {
+    position: absolute; background: rgba(255,255,255,0.06); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-lg);
+    padding: 1.5rem; color: #fff; transition: var(--transition-slow);
+}
+.hero-card-1 { width: 280px; top: 0; right: 0; animation: float-card 6s ease-in-out infinite; }
+.hero-card-2 { width: 250px; top: 80px; right: 120px; animation: float-card 6s ease-in-out infinite 2s; }
+.hero-card-3 { width: 220px; top: 180px; right: 30px; animation: float-card 6s ease-in-out infinite 4s; }
+@keyframes float-card { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-12px); } }
+.hero-card .card-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); margin-bottom: 0.4rem; }
+.hero-card .card-value { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700; }
+.hero-card .mini-bar { height: 4px; border-radius: 2px; margin-top: 0.8rem; }
+
+/* ══════════════ STATS ══════════════ */
+.stats-section { margin-top: -3rem; position: relative; z-index: 10; }
+.stats-card {
+    background: var(--color-surface); border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem; box-shadow: var(--shadow-lg); border: 1px solid var(--color-border);
+    transition: var(--transition-normal);
+}
+.stats-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-xl); }
+.stat-icon { width: 52px; height: 52px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+.stat-number { font-family: var(--font-serif); font-size: 2.5rem; font-weight: 800; line-height: 1; margin-bottom: 0.3rem; }
+.stat-label { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ══════════════ FEATURES ══════════════ */
+.features-section { padding: 6rem 0; }
+.section-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: rgba(233,69,96,0.08); color: var(--color-accent);
+    border-radius: 50px; padding: 0.35rem 1rem; font-size: 0.78rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem;
+}
+.section-title { font-family: var(--font-serif); font-size: 2.2rem; font-weight: 800; margin-bottom: 0.8rem; }
+.section-desc { font-size: 1rem; color: var(--color-text-muted); max-width: 560px; margin: 0 auto 3rem; }
+.feature-card {
+    background: var(--color-surface); border-radius: var(--radius-lg);
+    padding: 2rem; border: 1px solid var(--color-border);
+    transition: var(--transition-normal); height: 100%; position: relative; overflow: hidden;
+}
+.feature-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--gradient-accent); transform: scaleX(0); transform-origin: left;
+    transition: var(--transition-normal);
+}
+.feature-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+.feature-card:hover::before { transform: scaleX(1); }
+.feature-icon {
+    width: 56px; height: 56px; border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 1.2rem;
+}
+.feature-card h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.6rem; }
+.feature-card p { font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.7; margin: 0; }
+
+/* ══════════════ RECENT PAPERS ══════════════ */
+.recent-section { padding: 5rem 0; background: linear-gradient(180deg, var(--color-bg) 0%, #e8edf3 100%); }
+.paper-card {
+    background: var(--color-surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border); overflow: hidden;
+    transition: var(--transition-normal); height: 100%; display: flex; flex-direction: column;
+}
+.paper-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.paper-card-top { height: 5px; background: var(--gradient-accent); }
+.paper-card-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
+.paper-card .paper-status {
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--color-success); margin-bottom: 0.6rem;
+}
+.paper-card h5 { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.5; }
+.paper-card .paper-abstract { font-size: 0.83rem; color: var(--color-text-muted); line-height: 1.7; margin-bottom: 1rem; flex: 1; }
+.paper-card .paper-meta { font-size: 0.78rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 1rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+
+/* ══════════════ CTA ══════════════ */
+.cta-section {
+    padding: 5rem 0; background: var(--gradient-primary); position: relative; overflow: hidden;
+}
+.cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(233,69,96,0.1) 0%, transparent 60%);
+}
+.cta-content { position: relative; z-index: 2; }
+.cta-title { font-family: var(--font-serif); font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 1rem; }
+.cta-desc { font-size: 1rem; color: rgba(255,255,255,0.6); max-width: 500px; margin: 0 auto 2rem; }
+
+/* ══════════════ RESPONSIVE ══════════════ */
+@media (max-width: 991.98px) {
+    .hero-section { min-height: auto; padding: 4rem 0 3rem; }
+    .hero-visual { display: none; }
+    .hero-title { font-size: 2.2rem; }
+    .stats-card { padding: 1.5rem; }
+    .stat-number { font-size: 2rem; }
+}
+@media (max-width: 575.98px) {
+    .hero-actions { flex-direction: column; }
+    .hero-actions .btn { width: 100%; text-align: center; }
+}
+
+/* ══════════════ COUNTER ANIM ══════════════ */
+.count-up { display: inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ═══════════════ HERO SECTION ═══════════════ -->
+<section class="hero-section">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 hero-content">
+                <div class="hero-badge">
+                    <span class="dot"></span>
+                    Open Access &bull; Peer Reviewed &bull; ISSN: XXXX-XXXX
+                </div>
+                <h1 class="hero-title">
+                    Advancing Knowledge Through <span class="accent">Scholarly</span> Research
+                </h1>
+                <p class="hero-desc">
+                    A modern academic publishing platform empowering researchers worldwide with transparent peer review, rapid publication, and open-access archiving.
+                </p>
+                
+                <div class="hero-actions">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'Author' %}
+                            <a href="{{ url_for('author.submit_paper') }}" class="btn btn-hero-primary"><i class="bi bi-cloud-upload me-2"></i>Submit New Paper</a>
+                            <a href="{{ url_for('author.dashboard') }}" class="btn btn-hero-secondary"><i class="bi bi-grid-1x2 me-2"></i>My Dashboard</a>
+                        {% elif current_user.role == 'Editor' %}
+                            <a href="{{ url_for('editor.dashboard') }}" class="btn btn-hero-primary"><i class="bi bi-layout-text-sidebar-reverse me-2"></i>Editor Dashboard</a>
+                        {% elif current_user.role == 'Reviewer' %}
+                            <a href="{{ url_for('reviewer.dashboard') }}" class="btn btn-hero-primary"><i class="bi bi-clipboard-check me-2"></i>Reviewer Dashboard</a>
+                        {% elif current_user.role == 'Admin' %}
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-hero-primary"><i class="bi bi-speedometer2 me-2"></i>Admin Panel</a>
+                        {% endif %}
+                        <a href="{{ url_for('main.archive') }}" class="btn btn-hero-secondary"><i class="bi bi-archive me-2"></i>Browse Archive</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-hero-primary"><i class="bi bi-person-plus me-2"></i>Start Publishing</a>
+                        <a href="{{ url_for('main.archive') }}" class="btn btn-hero-secondary"><i class="bi bi-archive me-2"></i>Browse Archive</a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-lg-6 hero-visual d-none d-lg-block">
+                <div class="hero-card-stack">
+                    <div class="hero-card hero-card-1">
+                        <div class="card-label">Latest Publication</div>
+                        <div class="card-value">Peer-Reviewed Article</div>
+                        <div class="mini-bar" style="background: linear-gradient(90deg, #e94560, transparent); width: 80%;"></div>
+                    </div>
+                    <div class="hero-card hero-card-2">
+                        <div class="card-label">Review Status</div>
+                        <div class="card-value"><i class="bi bi-check-circle-fill text-success me-1"></i> Accepted</div>
+                        <div class="mini-bar" style="background: linear-gradient(90deg, #0ead69, transparent); width: 100%;"></div>
+                    </div>
+                    <div class="hero-card hero-card-3">
+                        <div class="card-label">Impact</div>
+                        <div class="card-value">{{ total_papers }} Published</div>
+                        <div class="mini-bar" style="background: linear-gradient(90deg, #60a5fa, transparent); width: 60%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ STATISTICS BAND ═══════════════ -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card text-center">
+                    <div class="stat-icon mx-auto" style="background: rgba(96,165,250,0.12); color: #3b82f6;"><i class="bi bi-journal-text"></i></div>
+                    <div class="stat-number text-primary"><span class="count-up" data-target="{{ total_papers }}">0</span></div>
+                    <div class="stat-label">Published Papers</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card text-center">
+                    <div class="stat-icon mx-auto" style="background: rgba(14,173,105,0.12); color: #0ead69;"><i class="bi bi-people"></i></div>
+                    <div class="stat-number" style="color: var(--color-success);"><span class="count-up" data-target="{{ total_authors }}">0</span></div>
+                    <div class="stat-label">Registered Authors</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card text-center">
+                    <div class="stat-icon mx-auto" style="background: rgba(83,52,131,0.12); color: #533483;"><i class="bi bi-clipboard-data"></i></div>
+                    <div class="stat-number" style="color: var(--color-secondary);"><span class="count-up" data-target="{{ total_reviews }}">0</span></div>
+                    <div class="stat-label">Completed Reviews</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card text-center">
+                    <div class="stat-icon mx-auto" style="background: rgba(233,69,96,0.12); color: #e94560;"><i class="bi bi-person-check"></i></div>
+                    <div class="stat-number" style="color: var(--color-accent);"><span class="count-up" data-target="{{ total_reviewers }}">0</span></div>
+                    <div class="stat-label">Expert Reviewers</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section class="features-section">
+    <div class="container">
+        <div class="text-center">
+            <div class="section-badge"><i class="bi bi-stars"></i> Why Choose Us</div>
+            <h2 class="section-title">Built for Modern <span class="text-gradient">Academia</span></h2>
+            <p class="section-desc">Our platform streamlines every step of the academic publishing lifecycle.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(96,165,250,0.12); color: #3b82f6;"><i class="bi bi-cloud-upload"></i></div>
+                    <h5>Fast Submission</h5>
+                    <p>Upload your manuscripts in PDF or Word format within seconds through our streamlined process.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(14,173,105,0.12); color: #0ead69;"><i class="bi bi-shield-check"></i></div>
+                    <h5>Blind Peer Review</h5>
+                    <p>Rigorous double-blind evaluation by expert reviewers ensures the highest quality publications.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(83,52,131,0.12); color: #533483;"><i class="bi bi-unlock"></i></div>
+                    <h5>Open Access</h5>
+                    <p>All published works are freely accessible, maximizing the reach and impact of your research.</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(233,69,96,0.12); color: #e94560;"><i class="bi bi-archive"></i></div>
+                    <h5>Digital Archive</h5>
+                    <p>Permanent, searchable storage of all publications with real-time view tracking and analytics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ RECENT PAPERS ═══════════════ -->
+{% if recent_papers %}
+<section class="recent-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-badge"><i class="bi bi-newspaper"></i> Latest Research</div>
+            <h2 class="section-title">Recently Published</h2>
+            <p class="section-desc">Explore the newest contributions from our scholarly community.</p>
+        </div>
+        <div class="row g-4">
+            {% for paper in recent_papers %}
+            <div class="col-lg-3 col-md-6">
+                <div class="paper-card">
+                    <div class="paper-card-top"></div>
+                    <div class="paper-card-body">
+                        <div class="paper-status"><i class="bi bi-check-circle-fill me-1"></i> Published</div>
+                        <h5>{{ paper.title }}</h5>
+                        <p class="paper-abstract">{{ paper.abstract | truncate(120, True) if paper.abstract else 'No abstract available.' }}</p>
+                        <div class="paper-meta">
+                            <span><i class="bi bi-person me-1"></i>{{ paper.author.full_name }}</span>
+                            <span><i class="bi bi-eye me-1"></i>{{ paper.view_count or 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.archive') }}" class="btn btn-hero-primary" style="background: var(--gradient-primary);">
+                <i class="bi bi-arrow-right me-2"></i>View All Publications
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ═══════════════ CTA ═══════════════ -->
+{% if not current_user.is_authenticated %}
+<section class="cta-section">
+    <div class="container text-center cta-content">
+        <h2 class="cta-title">Join Our Academic Community</h2>
+        <p class="cta-desc">Submit your research, contribute as a reviewer, or explore open-access publications from around the world.</p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-hero-primary"><i class="bi bi-person-plus me-2"></i>Create Account</a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-hero-secondary"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</a>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animated counters
+document.addEventListener('DOMContentLoaded', function() {
+    const counters = document.querySelectorAll('.count-up');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const target = parseInt(el.dataset.target) || 0;
+                if (target === 0) { el.textContent = '0'; return; }
+                let current = 0;
+                const duration = 1500;
+                const step = Math.max(1, Math.floor(target / (duration / 16)));
+                const timer = setInterval(() => {
+                    current += step;
+                    if (current >= target) { current = target; clearInterval(timer); }
+                    el.textContent = current;
+                }, 16);
+                observer.unobserve(el);
+            }
+        });
+    }, { threshold: 0.3 });
+    counters.forEach(c => observer.observe(c));
+});
+</script>
+{% endblock %}

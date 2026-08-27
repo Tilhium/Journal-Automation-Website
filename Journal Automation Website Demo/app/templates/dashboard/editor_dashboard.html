@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .dash-header { background: var(--gradient-primary); padding: 2rem 0; position: relative; overflow: hidden; }
+    .dash-header::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 80% 50%,rgba(34,211,238,0.1) 0%,transparent 50%); }
+    .dash-header * { position: relative; z-index: 2; }
+    .dash-header h2 { font-family: var(--font-serif); font-weight: 800; color: #fff; margin: 0; }
+    .dash-header p { color: rgba(255,255,255,0.6); margin: 0.3rem 0 0; font-size: 0.9rem; }
+    .pill-tabs { background:var(--color-surface); border-radius:var(--radius-lg); padding:0.3rem; display:flex; gap:0.3rem; border:1px solid var(--color-border); margin-bottom:1.5rem; box-shadow:var(--shadow-sm); }
+    .pill-tab { flex:1; text-align:center; padding:0.6rem; border-radius:var(--radius-md); font-size:0.85rem; font-weight:600; border:none; background:none; color:var(--color-text-muted); transition:var(--transition-fast); cursor:pointer; }
+    .pill-tab.active { background:var(--gradient-primary); color:#fff; box-shadow:var(--shadow-sm); }
+    .papers-table { background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); border:1px solid var(--color-border); overflow:hidden; }
+    .papers-table .table { margin:0; }
+    .papers-table .table thead th { background:var(--color-bg); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-muted); border:none; padding:1rem 1.2rem; }
+    .papers-table .table tbody td { padding:1rem 1.2rem; vertical-align:middle; border-color:var(--color-border); font-size:0.9rem; }
+    .papers-table .table tbody tr { transition:var(--transition-fast); }
+    .papers-table .table tbody tr:hover { background:rgba(233,69,96,0.02); }
+    .papers-table .table tbody tr.late-row { background: #fff5f5 !important; border-left: 3px solid #dc3545; }
+    .status-badge { font-size:0.72rem; font-weight:600; padding:0.35rem 0.8rem; border-radius:50px; letter-spacing:0.03em; }
+    .deadline-badge { font-size:0.7rem; font-weight:600; padding:0.25rem 0.6rem; border-radius:50px; display:inline-flex; align-items:center; gap:0.3rem; }
+    .deadline-late { background:#fee2e2; color:#dc2626; }
+    .deadline-ok { background:#d1fae5; color:#059669; }
+    .deadline-pending { background:#fef3c7; color:#d97706; }
+    .sim-badge { font-size:0.68rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:50px; }
+    .sim-high { background:#fee2e2; color:#dc2626; }
+    .sim-mid { background:#fef3c7; color:#d97706; }
+    .sim-low { background:#d1fae5; color:#059669; }
+    .empty-state { padding:4rem 2rem; text-align:center; }
+    .empty-state i { font-size:3rem; color:var(--color-border); margin-bottom:1rem; display:block; }
+    .decision-btn { font-size:0.72rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:50px; border:1.5px solid; cursor:pointer; transition:var(--transition-fast); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dash-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-layout-text-sidebar-reverse me-2"></i>Editor Dashboard</h2>
+            <p>Manage manuscript submissions, reviewer assignments and decisions</p>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge rounded-pill text-bg-light py-2 px-3" style="font-size:0.8rem;"><i class="bi bi-clock me-1"></i>Pending: {{ pending|length }}</span>
+            <span class="badge rounded-pill py-2 px-3" style="font-size:0.8rem;background:rgba(255,255,255,0.15);color:#fff;"><i class="bi bi-archive me-1"></i>Archive: {{ archived|length }}</span>
+        </div>
+    </div>
+</div>
+<div class="container py-2">
+    <div class="pill-tabs">
+        <button class="pill-tab active" onclick="switchTab('pending',this)"><i class="bi bi-inbox me-1"></i>Pending Actions ({{ pending|length }})</button>
+        <button class="pill-tab" onclick="switchTab('reviewing',this)"><i class="bi bi-hourglass-split me-1"></i>Under Review</button>
+        <button class="pill-tab" onclick="switchTab('archived',this)"><i class="bi bi-folder me-1"></i>Archived</button>
+    </div>
+
+    <!-- ── PENDING TAB ── -->
+    <div id="tab-pending">
+        <div class="papers-table">
+            <table class="table table-hover align-middle">
+                <thead><tr>
+                    <th>ID</th><th>Paper Title</th><th>Author</th><th>Similarity</th><th>Status</th><th class="text-center">Action</th>
+                </tr></thead>
+                <tbody>
+                    {% for paper in pending %}
+                    <tr>
+                        <td><span class="text-muted fw-bold">#{{ paper.id }}</span></td>
+                        <td>
+                            <strong>{{ paper.title }}</strong>
+                            {% if paper.status == 'Submitted' %}<span class="status-badge bg-danger text-white ms-1" style="font-size:0.6rem;">NEW</span>
+                            {% elif paper.status == 'Revision Submitted' %}<span class="status-badge bg-info text-white ms-1" style="font-size:0.6rem;">REVISION</span>
+                            {% elif paper.status == 'Payment Received' %}<span class="status-badge bg-success text-white ms-1" style="font-size:0.6rem;">PAID</span>{% endif %}
+                        </td>
+                        <td>{{ paper.author.full_name }}</td>
+                        <td>
+                            {% if paper.similarity_score is not none %}
+                                {% if paper.similarity_score > 40 %}
+                                    <span class="sim-badge sim-high"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ paper.similarity_score }}%</span>
+                                {% elif paper.similarity_score > 20 %}
+                                    <span class="sim-badge sim-mid">{{ paper.similarity_score }}%</span>
+                                {% else %}
+                                    <span class="sim-badge sim-low">{{ paper.similarity_score }}%</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="status-badge 
+                            {% if paper.status == 'Submitted' %}bg-warning text-dark
+                            {% elif paper.status == 'Revision Submitted' %}bg-info text-white
+                            {% elif paper.status == 'Payment Received' %}bg-success text-white{% endif %}">
+                            {{ paper.status }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if paper.status == 'Payment Received' %}
+                                <a href="{{ url_for('editor.approve_publication', paper_id=paper.id) }}" 
+                                   class="btn btn-sm btn-success fw-bold" style="border-radius:var(--radius-sm);font-size:0.8rem;"
+                                   onclick="return confirm('Publish this paper to the archive?')">
+                                    <i class="bi bi-check-circle me-1"></i>Approve &amp; Publish
+                                </a>
+                            {% else %}
+                                <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                    <a href="{{ url_for('editor.auto_assign_reviewer', paper_id=paper.id) }}"
+                                       class="btn btn-sm fw-bold"
+                                       style="border-radius:var(--radius-sm);font-size:0.75rem;background:var(--gradient-primary);border:none;color:#fff;"
+                                       onclick="return confirm('Auto-assign to best available reviewer?')">
+                                        <i class="bi bi-lightning-charge-fill me-1"></i>Auto Assign
+                                    </a>
+                                    <a href="{{ url_for('editor.assign_reviewer', paper_id=paper.id) }}"
+                                       class="btn btn-sm btn-outline-secondary fw-bold"
+                                       style="border-radius:var(--radius-sm);font-size:0.75rem;">
+                                        <i class="bi bi-person-plus me-1"></i>Manual
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6"><div class="empty-state"><i class="bi bi-inbox"></i><p>No papers require attention.</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── REVIEWING TAB ── -->
+    <div id="tab-reviewing" style="display:none;">
+        
+        <h6 class="fw-bold text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;">Active Reviews &amp; Deadlines</h6>
+        <div class="papers-table mb-4">
+            <table class="table table-hover align-middle">
+                <thead><tr>
+                    <th>Paper</th><th>Reviewer</th><th>Assigned</th><th>Deadline</th><th>Status</th><th class="text-center">Decision</th>
+                </tr></thead>
+                <tbody>
+                    {% set found = [] %}
+                    {% for paper in archived %}
+                        {% for review in paper.reviews %}
+                            {% if review.status == 'Pending' %}
+                            {% set _ = found.append(1) %}
+                            <tr class="{{ 'late-row' if review.deadline_status == 'Late' else '' }}">
+                                <td>
+                                    <strong style="font-size:0.88rem;">{{ paper.title[:50] }}{{ '…' if paper.title|length > 50 }}</strong>
+                                    <div class="text-muted" style="font-size:0.75rem;">#{{ paper.id }}</div>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold" style="font-size:0.88rem;">{{ review.reviewer.full_name }}</span>
+                                </td>
+                                <td class="text-muted small">{{ review.assigned_at.strftime('%d %b %Y') }}</td>
+                                <td>
+                                    {% if review.deadline %}
+                                        {% set now = now() if now is defined else none %}
+                                        <span class="deadline-badge {{ 'deadline-late' if review.deadline_status == 'Late' else 'deadline-ok' if review.deadline_status == 'Completed' else 'deadline-pending' }}">
+                                            {% if review.deadline_status == 'Late' %}<i class="bi bi-exclamation-circle-fill"></i> Late{% else %}<i class="bi bi-calendar-check"></i>{% endif %}
+                                            {{ review.deadline.strftime('%d %b %Y') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">No deadline</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="deadline-badge {{ 'deadline-late' if review.deadline_status == 'Late' else 'deadline-pending' }}">
+                                        {{ review.deadline_status }}
+                                    </span>
+                                </td>
+                                <td class="text-center">—</td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% if not found %}
+                    <tr><td colspan="6"><div class="empty-state"><i class="bi bi-hourglass"></i><p>No active reviews.</p></div></td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="fw-bold text-muted mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;">Completed Reviews — Awaiting Editor Decision</h6>
+        <div class="papers-table">
+            <table class="table table-hover align-middle">
+                <thead><tr>
+                    <th>Paper</th><th>Author</th><th>Reviewer Decision</th><th>Status</th><th class="text-center">Set Final Decision</th>
+                </tr></thead>
+                <tbody>
+                    {% set decided = [] %}
+                    {% for paper in archived %}
+                        {% if paper.status in ['Accepted', 'Rejected', 'Revision Required'] %}
+                        {% set _ = decided.append(1) %}
+                        {% set last_review = paper.reviews[-1] if paper.reviews else none %}
+                        <tr>
+                            <td><strong style="font-size:0.88rem;">{{ paper.title[:50] }}{{ '…' if paper.title|length > 50 }}</strong></td>
+                            <td class="small">{{ paper.author.full_name }}</td>
+                            <td>
+                                {% if last_review and last_review.comment %}
+                                    <span class="text-muted small" title="{{ last_review.comment }}">{{ last_review.comment[:60] }}…</span>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge
+                                    {% if paper.status == 'Accepted' %}bg-success text-white
+                                    {% elif paper.status == 'Rejected' %}bg-danger text-white
+                                    {% else %}bg-warning text-dark{% endif %}">
+                                    {{ paper.status }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('editor.set_decision', paper_id=paper.id) }}"
+                                      class="d-flex gap-1 justify-content-center flex-wrap"
+                                      onsubmit="return confirm('Set this decision for the paper?')">
+                                    <button type="submit" name="decision" value="Accepted"
+                                            class="btn btn-sm btn-success fw-bold" style="font-size:0.72rem;border-radius:50px;">
+                                        <i class="bi bi-check-lg me-1"></i>Accept
+                                    </button>
+                                    <button type="submit" name="decision" value="Revision Required"
+                                            class="btn btn-sm btn-warning fw-bold" style="font-size:0.72rem;border-radius:50px;">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Revision
+                                    </button>
+                                    <button type="submit" name="decision" value="Rejected"
+                                            class="btn btn-sm btn-danger fw-bold" style="font-size:0.72rem;border-radius:50px;">
+                                        <i class="bi bi-x-lg me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                    {% if not decided %}
+                    <tr><td colspan="5"><div class="empty-state"><i class="bi bi-check2-all"></i><p>No papers awaiting final decision.</p></div></td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── ARCHIVED TAB ── -->
+    <div id="tab-archived" style="display:none;">
+        <div class="papers-table">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>ID</th><th>Paper Title</th><th>Author</th><th>Status</th><th class="text-center">Info</th></tr></thead>
+                <tbody>
+                    {% set ns = namespace(has_archived=false) %}
+                    {% for paper in archived %}
+                    {% if paper.status not in ['Reviewing', 'Accepted', 'Rejected', 'Revision Required'] %}
+                    {% set ns.has_archived = true %}
+                    <tr>
+                        <td><span class="text-muted fw-bold">#{{ paper.id }}</span></td>
+                        <td class="text-muted">{{ paper.title }}</td>
+                        <td>{{ paper.author.full_name }}</td>
+                        <td>
+                            <span class="status-badge
+                                {% if paper.status == 'Published' %}text-white{% elif paper.status == 'Hidden' %}bg-secondary text-white{% else %}bg-light text-dark{% endif %}"
+                                {% if paper.status == 'Published' %}style="background:var(--gradient-primary);"{% endif %}>
+                                {{ paper.status }}
+                            </span>
+                        </td>
+                        <td class="text-center text-muted small">Tracked</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% if not ns.has_archived %}
+                    <tr><td colspan="5"><div class="empty-state"><i class="bi bi-folder2-open"></i><p>Archive is empty.</p></div></td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+function switchTab(tab, btn) {
+    ['pending','reviewing','archived'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.pill-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}
