@@ -8,4 +8,4 @@ print("3 - app degiskeni basariyla olusturuldu...")
 
 if __name__ == '__main__':
     print("4 - Sunucu baslatiliyor! Lutfen bekleyin...")
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

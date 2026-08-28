@@ -7,6 +7,47 @@
 
 **Academic Journal Automaton** is a comprehensive, role-based web application designed to streamline the entire lifecycle of an academic manuscript—from author submission to peer review, editorial decision, and final publication. It features a modern, responsive UI with premium glassmorphism elements, dynamic interactive PDF annotations, and automated assignment workflows.
 
+## 📸 Screenshots
+
+<details>
+<summary>Click to view screenshots of the platform</summary>
+<br>
+
+### Home & Archive
+![Home Page](screenshoots/home-page.png)
+*Home Page*
+
+![Archive Page](screenshoots/archive-page.png)
+*Archive Page*
+
+![Paper Detail Page](screenshoots/paper-detail-page.png)
+*Paper Detail Page*
+
+### Author Workflow
+![Author Dashboard](screenshoots/author-dashboard.png)
+*Author Dashboard*
+
+![Submit Paper Form](screenshoots/submit-paper-form.png)
+*Submit Paper Form*
+
+![Payment Form](screenshoots/payment-form.png)
+*Payment Form*
+
+![Payment Success](screenshoots/payment-success.png)
+*Payment Success*
+
+### Editor & Reviewer Workflow
+![Editor Dashboard](screenshoots/editor-dashboard.png)
+*Editor Dashboard*
+
+![Assign Reviewer](screenshoots/assign-reviewer.png)
+*Assign Reviewer*
+
+![Reviewer Workspace](screenshoots/reviewer-workspace.png)
+*Reviewer Workspace with Interactive PDF Annotations*
+
+</details>
+
 ---
 
 ## 🚀 Key Features
